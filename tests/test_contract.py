@@ -66,6 +66,49 @@ class HandMadeFiles(unittest.TestCase):
         self.assertEqual(st["fmt"], 3)
         self.assertEqual(st["live"], 1)
 
+    def test_run_filter(self):
+        import datetime
+        from unittest import mock
+        now = datetime.datetime(2026, 10, 16, 12, 0)
+        def r(stamp, role, verdict, **kw):
+            return {"id": f"{stamp}-{role}", "stamp": stamp, "role": role, "verdict": verdict, **kw}
+        runs = [r("20261016-100000", "dev", "PASS ok", ticket="T1", model="Sonnet"),
+                r("20261010-100000", "review", "FAIL bad", project="Proj"),
+                r("20260920-100000", "dev", "ERROR x"),
+                r("20261016-090000", "dev", "NO RESULT stopped"),
+                r("20261016-080000", "dev", None, live=True)]
+        ids = lambda flt: [x["id"][:15] + x["id"][15:] for x in core.filter_runs(runs, flt, now)]
+        all_ids = [x["id"] for x in runs]
+        for bad in (None, "x", [], {}, {"zzz": 1}, {"verdict": "pass", "role": 5, "days": "9", "q": 7},
+                    {"verdict": ["bogus"], "role": ["Bad/x"]}):
+            self.assertEqual(ids(bad), all_ids)
+        self.assertEqual(ids({"q": "x" * 500}), [])
+        self.assertEqual(ids({"verdict": ["pass"]}), [all_ids[0]])
+        self.assertEqual(ids({"verdict": ["fail"]}), all_ids[1:3])
+        self.assertEqual(ids({"verdict": ["none", "running"]}), all_ids[3:])
+        self.assertEqual(ids({"role": ["review"]}), [all_ids[1]])
+        self.assertEqual(ids({"days": "today"}), [all_ids[0], all_ids[3], all_ids[4]])
+        self.assertEqual(ids({"days": "7"}), all_ids[:2] + all_ids[3:])
+        self.assertEqual(ids({"days": "30"}), all_ids)
+        self.assertEqual(ids({"days": "all"}), all_ids)
+        self.assertEqual(ids({"q": "SONNET"}), [all_ids[0]])
+        self.assertEqual(ids({"q": "proj", "role": ["review"], "days": "7"}), [all_ids[1]])
+        with open(self.s / "runs.log", "a", encoding="utf-8") as f:
+            f.write(line("20200101-000000", "review", "FAIL old"))
+        (self.s / "runs" / "worker.lock").write_text(
+            json.dumps({"launcher_pid": os.getpid(), "role": "dev", "stamp": "20261016-120000"}), encoding="utf-8")
+        with mock.patch.object(core, "MAX_RUNS", 2):
+            st = core.project_state("p", self.s, {"verdict": ["fail"]}, now)
+        self.assertEqual([x["id"] for x in st["runs"]], ["20200101-000000-review"])
+        st = core.project_state("p", self.s, {"verdict": ["pass"]}, now)
+        self.assertEqual(st["total"], 4)
+        with mock.patch.object(core, "MAX_RUNS", 2):
+            st = core.project_state("p", self.s, {"verdict": ["pass"]}, now)
+        self.assertEqual((len(st["runs"]), st["total"]), (2, 4))
+        self.assertEqual([x["id"] for x in st["live_runs"]], ["20261016-120000-dev"])
+        self.assertEqual(st["roles"], ["dev", "dev2", "fix-dev", "review"])
+        self.assertEqual(st["today"], {"runs": 4, "pass": 4, "cost": 0.04})
+
     def test_fmt_of(self):
         self.assertEqual(core.fmt_of(None), 1)
         self.assertEqual(core.fmt_of("x"), 0)
