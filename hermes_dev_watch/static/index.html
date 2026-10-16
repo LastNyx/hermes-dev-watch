@@ -76,6 +76,9 @@ main{flex:1;min-width:0;display:flex;flex-direction:column}
 .l.edit .k{color:var(--edit)}.l.bash .k{color:var(--warn)}
 .l.denied{background:color-mix(in srgb,var(--bad) 10%,transparent)}.l.denied .k,.l.denied .x{color:var(--bad)}
 .l.error .k,.l.error .x{color:var(--warn)}
+.log .l.sm{background:color-mix(in srgb,var(--warn) 20%,transparent)}
+.log .l.sc{background:color-mix(in srgb,var(--acc) 32%,transparent);box-shadow:inset 3px 0 var(--acc)}
+#ls{width:170px;padding:3px 8px;font-size:12px}
 .tile .l{padding:1px 12px;font:11.5px/1.5 "JetBrains Mono",ui-monospace,Menlo,monospace}.tile .l .ts{width:40px}
 .tile .l .x{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:2px solid transparent;background-clip:padding-box}
@@ -164,7 +167,7 @@ function renderSide(){
 }
 function open(p,id){view={k:'run',p,id};logFor=null;render();pull()}
 function renderBoard(){
- const lv=liveRuns();logFor=null;
+ const lv=liveRuns();logFor=null;clearSearch();
  if(!lv.length){const r=allRuns()[0];
   $('main').innerHTML=`<div class="empty"><h2>No worker running</h2>${r?`Last run: <span class="role" style="${rc(r.role)}">${esc(r.role)}</span> ${esc(title(r))}<br>${vtxt(r)}<br><br><button class="btn" id="openlast">Open last run</button>`:'Start one from the planner.'}</div>`;
   if(r)$('openlast').onclick=()=>open(r.project,r.id);return}
@@ -181,16 +184,47 @@ function renderDetail(){
   r.turns&&r.turns!=='-'?r.turns+' turns':'',!r.live&&r.secs?dur(r.secs):'',r.cost!=null?'$'+r.cost.toFixed(2)+' list':'',r.denials&&r.denials!=='0'?r.denials+' denied':''].filter(Boolean);
  const head=`<div class="t"><button class="btn" id="back" title="Back to live">←</button>${r.live?'<span class="pulse"></span>':''}<span class="role" style="${rc(r.role)}">${esc(r.role)}</span>${esc(title(r))}</div>
   <div class="v" style="margin-top:6px;font-size:13px;white-space:normal">${vtxt(r)}</div>
-  <div class="chips">${chips.map(c=>`<span class="chip">${esc(c)}</span>`).join('')}</div>
-  <div class="tools">${['all','say','edit','bash','denied','error'].map(f=>`<button class="btn ${filt===f?'on':''}" data-f="${f}">${f}</button>`).join('')}
-  <span class="sp"></span><label class="stat"><input type="checkbox" id="fol" ${follow?'checked':''}> follow</label></div>`;
- if(logFor!==key){$('main').innerHTML=`<div class="dh" id="dh"></div><div class="log" id="log"></div>`;logFor=key;off=0}
- $('dh').innerHTML=head;
+  <div class="chips">${chips.map(c=>`<span class="chip">${esc(c)}</span>`).join('')}</div>`;
+ // the tools row is built once per run so the search box keeps focus and text across the 1 s refresh
+ if(logFor!==key){clearSearch();$('main').innerHTML=`<div class="dh"><div id="dh"></div><div class="tools"><span id="fb"></span>
+  <input id="ls" placeholder="Search log…" aria-label="Search log"><span class="stat" id="lc"></span>
+  <span class="sp"></span><label class="stat"><input type="checkbox" id="fol"> follow</label></div></div><div class="log" id="log"></div>`;logFor=key;off=0;size=-1;
+  $('ls').onkeydown=searchKey;$('ls').oninput=()=>{if(!$('ls').value.trim())clearSearch()}}
+ $('dh').innerHTML=head;$('fol').checked=follow;
+ $('fb').innerHTML=['all','say','edit','bash','denied','error'].map(f=>`<button class="btn ${filt===f?'on':''}" data-f="${f}">${f}</button>`).join('');
  document.getElementById('fs').textContent=filt==='all'?'':`.log .l:not([data-k="${filt}"]){display:none}`;
  $('back').onclick=()=>{view={k:'live'};render()};
  $('fol').onchange=e=>follow=e.target.checked;
- for(const b of document.querySelectorAll('[data-f]'))b.onclick=()=>{filt=b.dataset.f;renderDetail()};
+ for(const b of document.querySelectorAll('[data-f]'))b.onclick=()=>{filt=b.dataset.f;renderDetail();showCount()};
 }
+// --- log search: marks are CSS classes on the line elements; the reader numbers lines like the page does ---
+let sr=null,size=-1; // sr = {text,hits:null while loading|[line numbers],capped,cur:line number|-1}
+function clearSearch(){for(const e of document.querySelectorAll('#log .sm,#log .sc'))e.classList.remove('sm','sc');
+ sr=null;if($('lc'))$('lc').textContent='';if($('ls'))$('ls').value=''}
+function visHits(){const L=$('log');return sr&&sr.hits?sr.hits.filter(i=>L.children[i]&&L.children[i].offsetParent!==null):[]}
+function showCount(){if(!sr||!sr.hits)return;const v=visHits(),n=v.indexOf(sr.cur)+1;
+ $('lc').textContent=v.length?`${n} of ${sr.capped?'1000+':v.length}`:'no match'}
+function goTo(i){const L=$('log');for(const e of L.querySelectorAll('.sc'))e.classList.remove('sc');
+ sr.cur=i;if(i>=0){const e=L.children[i];e.classList.add('sc');e.scrollIntoView({block:'center'})}showCount()}
+function step(dir){const v=visHits();if(!v.length){goTo(-1);return}
+ const c=sr.cur;goTo(dir>0?(v.find(i=>i>c)??v[0]):([...v].reverse().find(i=>i<c)??v[v.length-1]))}
+async function loadAll(key){while(key===logFor&&(size<0||off<size)){
+ if(pulling){await new Promise(r=>setTimeout(r,50));continue}
+ const o=off;await pull();if(off===o&&size>=0)break}}
+async function searchKey(e){
+ if(e.key==='Escape'){clearSearch();return}
+ if(e.key!=='Enter')return;e.preventDefault();const text=$('ls').value.trim();if(!text)return;
+ if(sr&&sr.hits&&sr.text===text){step(e.shiftKey?-1:1);return}
+ if(sr&&!sr.hits)return;
+ const key=logFor;clearSearch();$('ls').value=text;const my=sr={text,hits:null,capped:false,cur:-1};
+ await loadAll(key);if(sr!==my||key!==logFor)return;
+ let d;try{d=await window.pywebview.api.search(view.p,view.id,text)}catch(x){d=null}
+ if(sr!==my||key!==logFor)return;
+ if(!d||d.error){$('lc').textContent='search failed';sr=null;return}
+ const L=$('log');my.hits=d.lines.filter(i=>L.children[i]);my.capped=!!d.capped;
+ for(const i of my.hits)L.children[i].classList.add('sm');
+ const top=L.getBoundingClientRect().top,v=visHits();
+ goTo(v.length?(v.find(i=>L.children[i].getBoundingClientRect().top>=top)??v[0]):-1)}
 function render(){renderTop();renderBar();renderSide();if(view.k==='run')renderDetail();else if(view.k==='settings')renderSettings();else renderBoard()}
 let pulling=false;
 async function pull(){
@@ -198,8 +232,8 @@ async function pull(){
  try{const p=await API.progress(view.p,view.id,off);
   if(key!==logFor)return;
   if(p.text){const first=off===0;L.insertAdjacentHTML('beforeend',p.text.split(/\r?\n/).filter(Boolean).map(lineHTML).join(''));
-   if(follow||first)L.scrollTop=L.scrollHeight}
-  if(p.offset!==undefined)off=p.offset;
+   if((follow&&!sr)||first)L.scrollTop=L.scrollHeight}
+  if(p.offset!==undefined)off=p.offset;if(p.size!==undefined)size=p.size;
   if(!L.children.length&&!p.text)L.innerHTML='<div class="empty" style="padding:30px">No progress log for this run<br><small>runs/ stays on the machine that ran it</small></div>';
  }finally{pulling=false}}
 async function tick(){
