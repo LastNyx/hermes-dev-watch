@@ -47,6 +47,24 @@ class HandMadeFiles(unittest.TestCase):
             with self.subTest(run_id=bad):
                 self.assertIsNone(core.progress(self.s, bad, 0))
 
+    def test_search_log(self):
+        rid = "20261016-100000-dev"
+        self.assertEqual(core.search_log(self.s, rid, "x"), {"lines": [], "total": 0, "capped": False})
+        self.assertIsNone(core.search_log(self.s, "../x", "x"))
+        log = self.s / "runs" / f"{rid}.progress.log"
+        log.write_bytes(b"[10:00] Alpha a.b\n\n  \nplain axb\r\n[10:01] ALPHA (x)\nbad \xff alpha\n")
+        r = lambda t: core.search_log(self.s, rid, t)
+        self.assertEqual(r("alpha"), {"lines": [0, 2, 3], "total": 3, "capped": False})
+        self.assertEqual(r(" a.b ")["lines"], [0])
+        self.assertEqual(r("(x)")["lines"], [2])
+        for t in ("", "  ", None, 5):
+            self.assertEqual(r(t), {"lines": [], "total": 0, "capped": False})
+        log.write_text("hit\n" * 1005, encoding="utf-8")
+        big = r("HIT")
+        self.assertEqual((len(big["lines"]), big["total"], big["capped"]), (1000, 1005, True))
+        log.write_text("a" * 250 + "\n" + "a" * 200 + "\n", encoding="utf-8")
+        self.assertEqual(r("a" * 300)["lines"], [0, 1])
+
     def test_progress_crlf_log_reads_as_lf_in_small_reads(self):
         lines = ["alpha one", "beta\rtwo", "gamma three", "delta"]
         (self.s / "runs" / "20261016-100000-dev.progress.log").write_bytes(

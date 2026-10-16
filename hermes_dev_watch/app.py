@@ -33,6 +33,11 @@ class Api:
         d = core.progress(scratch, run, offset) if scratch else None
         return d or {"text": "", "offset": 0, "size": 0, "error": "unknown project or run"}
 
+    def search(self, project, run, text):
+        scratch = self._projects.get().get(project)                 # only a known project, never a path from the page
+        d = core.search_log(scratch, run, text) if scratch else None
+        return d or {"lines": [], "total": 0, "capped": False, "error": "unknown project or run"}
+
     def get_config(self):
         return {**core.load_config(self._cfg_path), "path": str(self._cfg_path)}
 

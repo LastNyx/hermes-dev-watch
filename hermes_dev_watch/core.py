@@ -231,6 +231,19 @@ def progress(scratch, rid, offset):
     return {"text": text, "offset": offset + cut, "size": size}
 
 
+def search_log(scratch, rid, text):
+    if not RUN_ID.match(rid or ""):
+        return None
+    p = scratch / "runs" / f"{rid}.progress.log"
+    text = (text.strip() if isinstance(text, str) else "")[:200].lower()
+    if not text or not p.is_file():
+        return {"lines": [], "total": 0, "capped": False}
+    raw = p.read_bytes().decode("utf-8", "replace").replace("\r\n", "\n")
+    shown = [ln for ln in raw.split("\n") if ln.strip()]       # numbered as the page shows them
+    hits = [i for i, ln in enumerate(shown) if text in ln.lower()]
+    return {"lines": hits[:1000], "total": len(hits), "capped": len(hits) > 1000}
+
+
 def load_config(path=CONFIG):
     """{"roots": [...], "scratch": [...]} from config.json; missing file = empty lists."""
     p = pathlib.Path(path)
