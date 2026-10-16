@@ -216,7 +216,7 @@ def project_state(pid, scratch, flt=None, now=None, open_run=None):
 
 
 def progress(scratch, rid, offset):
-    if not RUN_ID.match(rid or ""):
+    if not (isinstance(rid, str) and RUN_ID.match(rid)):
         return None
     p = scratch / "runs" / f"{rid}.progress.log"
     if not p.is_file():
@@ -232,7 +232,7 @@ def progress(scratch, rid, offset):
 
 
 def search_log(scratch, rid, text):
-    if not RUN_ID.match(rid or ""):
+    if not (isinstance(rid, str) and RUN_ID.match(rid)):
         return None
     p = scratch / "runs" / f"{rid}.progress.log"
     text = (text.strip() if isinstance(text, str) else "")[:200].lower()

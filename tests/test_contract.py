@@ -47,6 +47,12 @@ class HandMadeFiles(unittest.TestCase):
             with self.subTest(run_id=bad):
                 self.assertIsNone(core.progress(self.s, bad, 0))
 
+    def test_non_string_run_ids_are_refused(self):
+        for bad in (5, [], {}, True, None):
+            with self.subTest(run_id=bad):
+                self.assertIsNone(core.search_log(self.s, bad, "x"))
+                self.assertIsNone(core.progress(self.s, bad, 0))
+
     def test_search_log(self):
         rid = "20261016-100000-dev"
         self.assertEqual(core.search_log(self.s, rid, "x"), {"lines": [], "total": 0, "capped": False})
