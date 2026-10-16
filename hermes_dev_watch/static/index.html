@@ -195,7 +195,7 @@ function renderDetail(){
  document.getElementById('fs').textContent=filt==='all'?'':`.log .l:not([data-k="${filt}"]){display:none}`;
  $('back').onclick=()=>{view={k:'live'};render()};
  $('fol').onchange=e=>follow=e.target.checked;
- for(const b of document.querySelectorAll('[data-f]'))b.onclick=()=>{filt=b.dataset.f;renderDetail();showCount()};
+ for(const b of document.querySelectorAll('[data-f]'))b.onclick=()=>{filt=b.dataset.f;renderDetail();keepCur()};
 }
 // --- log search: marks are CSS classes on the line elements; the reader numbers lines like the page does ---
 let sr=null,size=-1; // sr = {text,hits:null while loading|[line numbers],capped,cur:line number|-1}
@@ -204,6 +204,8 @@ function clearSearch(){for(const e of document.querySelectorAll('#log .sm,#log .
 function visHits(){const L=$('log');return sr&&sr.hits?sr.hits.filter(i=>L.children[i]&&L.children[i].offsetParent!==null):[]}
 function showCount(){if(!sr||!sr.hits)return;const v=visHits(),n=v.indexOf(sr.cur)+1;
  $('lc').textContent=v.length?`${n} of ${sr.capped?'1000+':v.length}`:'no match'}
+function keepCur(){if(!sr||!sr.hits)return;const v=visHits();if(v.includes(sr.cur))return showCount();
+ goTo(v.find(i=>i>=sr.cur)??v[0]??-1)}
 function goTo(i){const L=$('log');for(const e of L.querySelectorAll('.sc'))e.classList.remove('sc');
  sr.cur=i;if(i>=0){const e=L.children[i];e.classList.add('sc');e.scrollIntoView({block:'center'})}showCount()}
 function step(dir){const v=visHits();if(!v.length){goTo(-1);return}
