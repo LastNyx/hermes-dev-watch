@@ -1,0 +1,3 @@
+# App runtime. Windows: pywebview pulls pythonnet and uses Edge WebView2 (built into Windows 10/11).
+# Linux: pywebview uses the system GTK + WebKit2GTK 4.1 and PyGObject (create the venv with --system-site-packages).
+pywebview>=6.0
