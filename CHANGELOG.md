@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.4 - 2026-10-16
+
+- Planner lines (hermes-dev-team 0.13.7: role `planner`, one line per planner check or note) show as runs with a
+  `planner` role chip. The header's "today" runs/pass/fail/cost counts leave them out and show `· N planner`
+  separately; before, every `NOTE` line counted as a failure. `core.project_state` `today` gains `planner`.
+- Tests: the kit's planner sample is read, and planner lines stay out of `today` (18 tests).
+
 ## 0.3.3 - 2026-10-16
 
 Feature filters-search, built by hermes-dev-team dev and reviewer workers (14 tickets, 2 review batches).

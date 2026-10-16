@@ -146,8 +146,8 @@ function renderTop(){
  if(!opts.some(o=>o[0]===proj))proj='*';
  const h=opts.map(([v,n,l])=>`<option value="${esc(v)}" ${v===proj?'selected':''}>${esc(n)}${l?` · ${l} running`:''}</option>`).join('');
  if($('proj').dataset.h!==h){$('proj').innerHTML=h;$('proj').dataset.h=h}
- const tds=shown().map(p=>p.today||{}),n=tds.reduce((a,t)=>a+(t.runs||0),0),pass=tds.reduce((a,t)=>a+(t.pass||0),0),cost=tds.reduce((a,t)=>a+(t.cost||0),0),lv=liveRuns().length;
- $('stats').innerHTML=`today <b>${n}</b> runs · <b class="ok">${pass}</b> pass · <b class="bad">${n-pass}</b> fail · list <b>$${cost.toFixed(2)}</b>`;
+ const tds=shown().map(p=>p.today||{}),n=tds.reduce((a,t)=>a+(t.runs||0),0),pass=tds.reduce((a,t)=>a+(t.pass||0),0),cost=tds.reduce((a,t)=>a+(t.cost||0),0),pl=tds.reduce((a,t)=>a+(t.planner||0),0),lv=liveRuns().length;
+ $('stats').innerHTML=`today <b>${n}</b> runs · <b class="ok">${pass}</b> pass · <b class="bad">${n-pass}</b> fail · list <b>$${cost.toFixed(2)}</b>`+(pl?` · <b>${pl}</b> planner`:'');
  const nf=S.projects.filter(p=>p.newer_format);$('fmtwarn').hidden=!nf.length;
  $('fmtwarn').textContent=nf.length?`⚠ kit format ${Math.max(...nf.map(p=>p.fmt))} is newer than this watcher (${S.known_format??1}): update hermes-dev-watch`:'';
  $('fmtwarn').title=nf.length?'Some fields may be missing or wrong in: '+nf.map(p=>p.id).join(', '):'';

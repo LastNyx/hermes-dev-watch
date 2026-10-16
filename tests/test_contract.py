@@ -152,7 +152,17 @@ class HandMadeFiles(unittest.TestCase):
         self.assertEqual(st["roles"], ["dev", "dev2", "fix-dev", "review"])
         self.assertEqual(st["run_count"], 6)
         self.assertEqual(core.project_state("p", self.s, None, now)["run_count"], 6)
-        self.assertEqual(st["today"], {"runs": 4, "pass": 4, "cost": 0.04})
+        self.assertEqual(st["today"], {"runs": 4, "pass": 4, "cost": 0.04, "planner": 0})
+
+    def test_planner_lines_left_out_of_today(self):
+        import datetime
+        with open(self.s / "runs.log", "a", encoding="utf-8") as f:
+            f.write(line("20261016-100400", "planner", "NOTE status 01 review")
+                    + line("20261016-100500", "planner", "FAIL verify 01: blank"))
+        st = core.project_state("p", self.s, None, datetime.datetime(2026, 10, 16, 12, 0))
+        self.assertEqual(st["today"], {"runs": 4, "pass": 4, "cost": 0.04, "planner": 2})
+        self.assertIn("planner", st["roles"])
+        self.assertEqual(len(st["runs"]), 6)
 
     def test_open_run_comes_back_fresh_whatever_the_filter(self):
         lock = self.s / "runs" / "worker.lock"
@@ -190,9 +200,17 @@ class KitSamples(unittest.TestCase):
         cls.st = core.project_state("kit", cls.fx)
         cls.by = {r["id"]: r for r in cls.st["runs"]}
 
-    def test_three_runs_by_id(self):
+    def test_runs_by_id(self):
         self.assertEqual(sorted(self.by), ["20261016-120000-dev", "20261016-120500-researcher",
-                                           "20261016-121000-docs"])
+                                           "20261016-121000-docs", "20261016-121500-planner"])
+
+    def test_planner_line(self):
+        pl = self.by.get("20261016-121500-planner", {})
+        self.assertEqual((pl.get("role"), pl.get("model"), pl.get("verdict"), pl.get("turns"), pl.get("cost"),
+                          pl.get("ticket")),
+                         ("planner", "planner", "FAIL verify 01: the sum is blank", "-", None, "01-mul.md"))
+        text = (core.progress(self.fx, "20261016-121500-planner", 0) or {}).get("text", "")
+        self.assertIn("say: loaded the page", text)
 
     def test_dev_run_fields(self):
         dev = self.by.get("20261016-120000-dev", {})

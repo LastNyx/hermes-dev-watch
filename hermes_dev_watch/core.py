@@ -206,12 +206,14 @@ def project_state(pid, scratch, flt=None, now=None, open_run=None):
     seen = max([r.get("fmt", 1) for r in logged.values()] + [fmt_of(d.get("fmt")) for d in live.values()] + [1])
     matched = filter_runs(runs, flt, now)
     today = now.strftime("%Y%m%d")
-    done = [r for r in runs if not r.get("live") and r["stamp"][:8] == today]
+    ended = [r for r in runs if not r.get("live") and r["stamp"][:8] == today]
+    done = [r for r in ended if r["role"] != "planner"]     # planner lines are notes and checks, not worker runs
     opened = next((r for r in runs if r["id"] == open_run), None) if isinstance(open_run, str) else None
     return {"id": pid, "path": scratch.as_posix(), "open": opened, "runs": matched[:MAX_RUNS], "total": len(matched), "run_count": len(runs),
             "live_runs": [r for r in runs if r.get("live")], "roles": sorted({r["role"] for r in runs}),
             "today": {"runs": len(done), "pass": sum(verdict_group(r) == "pass" for r in done),
-                      "cost": sum(r["cost"] for r in done if r.get("cost") is not None)},
+                      "cost": sum(r["cost"] for r in done if r.get("cost") is not None),
+                      "planner": len(ended) - len(done)},
             "live": len(live), "fmt": seen, "newer_format": seen > KNOWN_FORMAT}
 
 

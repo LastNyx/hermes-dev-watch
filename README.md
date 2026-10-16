@@ -7,6 +7,8 @@ runs live, across every project on the machine.
 - **Runs**: every run grouped by day, with role, ticket, verdict, duration and list cost; a project picker and a run
   filter: verdict (pass / fail / no result / running), role, date (today / 7 / 30 days / all) and text, remembered
   across restarts. The live board, toasts and the header's "today" stats ignore the filter.
+- **Planner lines** (kit 0.13.7+): the planner's own checks and notes (`PASS verify 05`, `NOTE fix 13: ...`) are
+  runs of role `planner`, with the check's steps as `say:` lines. The header counts them apart (`· N planner`).
 - **Run log**: the full progress log as it is written, which can be filtered to `say` / `edit` / `bash` / `denied` /
   `error` lines, and searched (plain text, Enter / Shift+Enter to step, Escape to clear; the first 1000 matches).
 - **Finished runs**: an in-app toast when a run ends, plus a desktop notification on Linux (`notify-send`).
@@ -83,7 +85,7 @@ unittest discover -s tests -v`; stdlib only).
 
 | File | Written by (kit) | Format |
 |---|---|---|
-| `runs.log` | `run-worker.py` `report()`, one line per finished run | tab-separated: `stamp`, `role`, `model`, `verdict`, then `turns=`, `<secs>s`, and `key=value` fields (`list$`, `denials`, `feature`, `ticket`, `repo`, `backend`, …) |
+| `runs.log` | `run-worker.py` `report()`, one line per finished run; the planner's `scratch.py` commands add `planner` lines (kit 0.13.7+, `action=` key) | tab-separated: `stamp`, `role`, `model`, `verdict`, then `turns=`, `<secs>s`, and `key=value` fields (`list$`, `denials`, `feature`, `ticket`, `repo`, `backend`, …) |
 | `runs/<stamp>-<role>.progress.log` | `run-worker.py` `stream_worker()`, while the run happens | one line per event: `  [  12s] <text>`. `<text>` is `<Tool> <arg>`, `say: <worker text>` (kit 0.13.2+), `DENIED <tool>: …` or `exit!=0 <tool>: …` |
 | `runs/*.lock` | the launcher, while a worker runs | JSON with `launcher_pid`, `worker_pid`, `role`, `ticket`, `feature`, `repo`, `stamp`. The run is live when either pid is alive. Today the kit writes only `worker.lock`; any other `*.lock` (one per repo or role, or the fake workers' `fake-N.lock`) is shown the same way |
 
