@@ -177,7 +177,7 @@ function renderBoard(){
 let openRun=null;
 function renderDetail(){
  const key=view.p+'/'+view.id;let r=find(view.p,view.id);
- if(r)openRun={key,r};else if(openRun&&openRun.key===key&&S.projects.some(x=>x.id===view.p))r=openRun.r;
+ if(r)openRun={key,r};else if(openRun&&openRun.key===key&&S.projects.some(x=>x.id===view.p))r=openRun.r.live?{...openRun.r,live:false}:openRun.r;
  if(!r){view={k:'live'};return renderBoard()}
  const chips=[r.project,r.repo&&r.repo!==r.project?r.repo:'',r.feature,r.ticket&&r.ticket!=='-'?r.ticket:'',r.model,r.backend&&r.backend!=='claude'?r.backend:'',
   r.turns&&r.turns!=='-'?r.turns+' turns':'',!r.live&&r.secs?dur(r.secs):'',r.cost!=null?'$'+r.cost.toFixed(2)+' list':'',r.denials&&r.denials!=='0'?r.denials+' denied':''].filter(Boolean);
