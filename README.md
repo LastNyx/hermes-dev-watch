@@ -77,7 +77,8 @@ again every 15 s, so a new project shows up after its first run.
 
 The kit owns the format: its [docs/watch-contract.md](https://github.com/LastNyx/hermes-dev-team/blob/main/docs/watch-contract.md) is the spec, and its `tests/fixtures/watch/` holds samples written by its real launcher code.
 Both CIs check that this watcher reads them: the kit's on every kit push, this repo's on every push here and
-weekly (`python tests/contract.py <kit checkout>`, stdlib only).
+weekly (`python tests/test_contract.py <kit checkout>`, or `HDW_KIT_DIR=<kit checkout> python -m
+unittest discover -s tests -v`; stdlib only).
 
 | File | Written by (kit) | Format |
 |---|---|---|

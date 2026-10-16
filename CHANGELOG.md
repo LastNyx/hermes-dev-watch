@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2 - 2026-10-16
+
+- `tests/test_contract.py` (feature filters-search, ticket 01, by a dev worker): the contract checks under
+  unittest; the kit-sample checks run when `HDW_KIT_DIR` points at a hermes-dev-team checkout, else skip.
+  `tests/contract.py` removed. CI runs `python -m unittest discover -s tests -v` with `HDW_KIT_DIR` set.
+
 ## 0.3.1 - 2026-10-16
 
 - `.github/workflows/release.yml`: actions pinned by commit SHA at the latest release of the same major version
