@@ -233,7 +233,7 @@ async function pull(){
  if(view.k!=='run'||pulling)return;const L=$('log');if(!L)return;pulling=true;const key=logFor;
  try{const p=await API.progress(view.p,view.id,off);
   if(key!==logFor)return;
-  if(p.text){const first=off===0;L.insertAdjacentHTML('beforeend',p.text.split(/\r?\n/).filter(Boolean).map(lineHTML).join(''));
+  if(p.text){const first=off===0;L.insertAdjacentHTML('beforeend',p.text.split(/\r?\n/).filter(l=>l.trim()).map(lineHTML).join(''));
    if((follow&&!sr)||first)L.scrollTop=L.scrollHeight}
   if(p.offset!==undefined)off=p.offset;if(p.size!==undefined)size=p.size;
   if(!L.children.length&&!p.text)L.innerHTML='<div class="empty" style="padding:30px">No progress log for this run<br><small>runs/ stays on the machine that ran it</small></div>';
