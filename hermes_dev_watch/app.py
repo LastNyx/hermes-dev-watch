@@ -18,8 +18,10 @@ class Api:
         # underscore names: pywebview does not expose them to the page (it walks public attributes)
         self._projects, self._cfg_path, self._window = projects, cfg_path, None
 
-    def state(self, flt=None):
-        return {"projects": [core.project_state(pid, s, flt) for pid, s in sorted(self._projects.get().items())],
+    def state(self, flt=None, open_run=None):
+        o = open_run if isinstance(open_run, dict) else {}          # {"project": id, "run": run id}; bad input = none
+        return {"projects": [core.project_state(pid, s, flt, open_run=o.get("run") if o.get("project") == pid else None)
+                             for pid, s in sorted(self._projects.get().items())],
                 "known_format": core.KNOWN_FORMAT}
 
     def progress(self, project, run, offset):

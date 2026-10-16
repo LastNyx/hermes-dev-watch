@@ -174,10 +174,8 @@ function renderBoard(){
   <div class="tb">${(r.tail||[]).map(lineHTML).join('')||'<div class="l"><span class="x" style="color:var(--dim)">starting…</span></div>'}</div></div>`).join('')}</div>`;
  for(const d of document.querySelectorAll('.tile'))d.onclick=()=>open(d.dataset.p,d.dataset.id);
 }
-let openRun=null;
 function renderDetail(){
- const key=view.p+'/'+view.id;let r=find(view.p,view.id);
- if(r)openRun={key,r};else if(openRun&&openRun.key===key&&S.projects.some(x=>x.id===view.p))r=openRun.r.live?{...openRun.r,live:false}:openRun.r;
+ const key=view.p+'/'+view.id;const op=S.projects.find(x=>x.id===view.p);let r=(op&&op.open&&op.open.id===view.id&&op.open)||find(view.p,view.id);
  if(!r){view={k:'live'};return renderBoard()}
  const chips=[r.project,r.repo&&r.repo!==r.project?r.repo:'',r.feature,r.ticket&&r.ticket!=='-'?r.ticket:'',r.model,r.backend&&r.backend!=='claude'?r.backend:'',
   r.turns&&r.turns!=='-'?r.turns+' turns':'',!r.live&&r.secs?dur(r.secs):'',r.cost!=null?'$'+r.cost.toFixed(2)+' list':'',r.denials&&r.denials!=='0'?r.denials+' denied':''].filter(Boolean);
@@ -214,7 +212,7 @@ $('q').oninput=()=>{runFilter.q=$('q').value.trim();changed()};
 $('livebtn').onclick=()=>{view={k:'live'};render()};
 
 // --- desktop app: Python bridge (pywebview), settings, finished-run toasts ---
-const API={state:flt=>window.pywebview.api.state(flt),progress:(p,r,o)=>window.pywebview.api.progress(p,r,o),
+const API={state:flt=>view.k==='run'?window.pywebview.api.state(flt,{project:view.p,run:view.id}):window.pywebview.api.state(flt),progress:(p,r,o)=>window.pywebview.api.progress(p,r,o),
  config:()=>window.pywebview.api.get_config(),save:c=>window.pywebview.api.save_config(c),pick:()=>window.pywebview.api.pick_folder()};
 async function notifyDone(){
  const now=new Map(S.projects.flatMap(p=>(p.live_runs||[]).map(r=>[r.project+'\n'+r.id,r])));

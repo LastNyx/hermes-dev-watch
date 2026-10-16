@@ -186,7 +186,7 @@ def filter_runs(runs, flt, now):
     return out
 
 
-def project_state(pid, scratch, flt=None, now=None):
+def project_state(pid, scratch, flt=None, now=None, open_run=None):
     now = now or datetime.datetime.now()
     runs_dir = scratch / "runs"
     logged = runs_log(scratch)
@@ -207,7 +207,8 @@ def project_state(pid, scratch, flt=None, now=None):
     matched = filter_runs(runs, flt, now)
     today = now.strftime("%Y%m%d")
     done = [r for r in runs if not r.get("live") and r["stamp"][:8] == today]
-    return {"id": pid, "path": scratch.as_posix(), "runs": matched[:MAX_RUNS], "total": len(matched), "run_count": len(runs),
+    opened = next((r for r in runs if r["id"] == open_run), None) if isinstance(open_run, str) else None
+    return {"id": pid, "path": scratch.as_posix(), "open": opened, "runs": matched[:MAX_RUNS], "total": len(matched), "run_count": len(runs),
             "live_runs": [r for r in runs if r.get("live")], "roles": sorted({r["role"] for r in runs}),
             "today": {"runs": len(done), "pass": sum(verdict_group(r) == "pass" for r in done),
                       "cost": sum(r["cost"] for r in done if r.get("cost") is not None)},

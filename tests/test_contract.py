@@ -130,6 +130,24 @@ class HandMadeFiles(unittest.TestCase):
         self.assertEqual(core.project_state("p", self.s, None, now)["run_count"], 6)
         self.assertEqual(st["today"], {"runs": 4, "pass": 4, "cost": 0.04})
 
+    def test_open_run_comes_back_fresh_whatever_the_filter(self):
+        lock = self.s / "runs" / "worker.lock"
+        lock.write_text(json.dumps({"launcher_pid": os.getpid(), "role": "dev", "stamp": "20261016-120000"}),
+                        encoding="utf-8")
+        hide = {"verdict": ["pass"]}
+        st = core.project_state("p", self.s, hide, open_run="20261016-120000-dev")
+        self.assertNotIn("20261016-120000-dev", [r["id"] for r in st["runs"]])
+        self.assertTrue(st["open"]["live"])
+        self.assertEqual(st["open"]["project"], "p")
+        lock.unlink()
+        with open(self.s / "runs.log", "a", encoding="utf-8") as f:
+            f.write(line("20261016-120000", "dev", "FAIL late"))
+        st = core.project_state("p", self.s, hide, open_run="20261016-120000-dev")
+        self.assertEqual(st["open"]["verdict"], "FAIL late")
+        self.assertFalse(st["open"].get("live"))
+        for bad in (None, 5, ["x"], {}, "x", "20261016-120000-../x", "20261016-999999-dev"):
+            self.assertIsNone(core.project_state("p", self.s, open_run=bad)["open"])
+
     def test_fmt_of(self):
         self.assertEqual(core.fmt_of(None), 1)
         self.assertEqual(core.fmt_of("x"), 0)
