@@ -175,9 +175,11 @@ function renderBoard(){
   <div class="tb">${(r.tail||[]).map(lineHTML).join('')||'<div class="l"><span class="x" style="color:var(--dim)">starting…</span></div>'}</div></div>`).join('')}</div>`;
  for(const d of document.querySelectorAll('.tile'))d.onclick=()=>open(d.dataset.p,d.dataset.id);
 }
+let openRun=null;
 function renderDetail(){
- const r=find(view.p,view.id);if(!r){view={k:'live'};return renderBoard()}
- const key=view.p+'/'+view.id;
+ const key=view.p+'/'+view.id;let r=find(view.p,view.id);
+ if(r)openRun={key,r};else if(openRun&&openRun.key===key&&S.projects.some(x=>x.id===view.p))r=openRun.r;
+ if(!r){view={k:'live'};return renderBoard()}
  const chips=[r.project,r.repo&&r.repo!==r.project?r.repo:'',r.feature,r.ticket&&r.ticket!=='-'?r.ticket:'',r.model,r.backend&&r.backend!=='claude'?r.backend:'',
   r.turns&&r.turns!=='-'?r.turns+' turns':'',!r.live&&r.secs?dur(r.secs):'',r.cost!=null?'$'+r.cost.toFixed(2)+' list':'',r.denials&&r.denials!=='0'?r.denials+' denied':''].filter(Boolean);
  const head=`<div class="t"><button class="btn" id="back" title="Back to live">←</button>${r.live?'<span class="pulse"></span>':''}<span class="role" style="${rc(r.role)}">${esc(r.role)}</span>${esc(title(r))}</div>
