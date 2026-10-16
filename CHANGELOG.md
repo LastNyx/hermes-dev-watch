@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 - 2026-10-16
+
+- `.github/workflows/release.yml`: actions pinned by commit SHA at the latest release of the same major version
+  (checkout v4.4.0, setup-python v5.6.0, upload-artifact v4.6.2, action-gh-release v2.6.2), and the checkout keeps
+  no credentials. The workflow can write releases, so a moved tag in an action could publish another binary. Not
+  run yet (it runs on a `v*` tag).
+
 ## 0.3.0 - 2026-10-16
 
 Follow the kit's run-file format (hermes-dev-team 0.13.3+, its `docs/watch-contract.md`).
