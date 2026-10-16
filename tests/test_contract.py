@@ -1,0 +1,115 @@
+"""The run-file contract with hermes-dev-team, from the watcher's side. Stdlib only; never starts the window.
+
+    python -m unittest discover -s tests -v
+    python tests/test_contract.py [<hermes-dev-team checkout>]
+
+Hand-made files always run. The kit's samples (tests/fixtures/watch/, spec in its docs/watch-contract.md) run when
+HDW_KIT_DIR names a hermes-dev-team checkout (a path argument sets it); otherwise that class is skipped.
+"""
+import json, os, pathlib, sys, tempfile, unittest
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+from hermes_dev_watch import core  # noqa: E402
+
+
+def line(stamp, role, verdict="PASS ok", extra=()):
+    return "\t".join([stamp, role, "sonnet", verdict, "turns=3", "9s", "list$=0.01", "denials=0", "feature=f",
+                      "repo=r", "backend=claude", "ticket=-", *extra]) + "\n"
+
+
+class HandMadeFiles(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory(prefix="hdw-contract-")
+        self.addCleanup(tmp.cleanup)
+        self.root = pathlib.Path(tmp.name).resolve()
+        self.s = self.root / "p" / ".scratch"
+        (self.s / "runs").mkdir(parents=True)
+        (self.s / "runs.log").write_text(
+            line("20261016-100000", "dev") + line("20261016-100100", "dev", extra=["fmt=1"])
+            + line("20261016-100200", "fix-dev") + line("20261016-100300", "dev2"), encoding="utf-8")
+
+    def test_fmt_absent_and_fmt_1_both_read(self):
+        st = core.project_state("p", self.s)
+        ids = [r["id"] for r in st["runs"]]
+        self.assertIn("20261016-100000-dev", ids)
+        self.assertIn("20261016-100100-dev", ids)
+        self.assertEqual(st["fmt"], 1)
+        self.assertFalse(st["newer_format"])
+
+    def test_role_names_with_dash_and_digits_are_listed(self):
+        ids = [r["id"] for r in core.project_state("p", self.s)["runs"]]
+        self.assertIn("20261016-100200-fix-dev", ids)
+        self.assertIn("20261016-100300-dev2", ids)
+
+    def test_progress_refuses_bad_run_ids(self):
+        for bad in ("20261016-100000-../../x", "20261016-100000-a/b", "20261016-100000-a.b",
+                    "20261016-100000-Dev", "x"):
+            with self.subTest(run_id=bad):
+                self.assertIsNone(core.progress(self.s, bad, 0))
+
+    def test_fmt_above_known_format_flags_newer_but_lists_run(self):
+        with open(self.s / "runs.log", "a", encoding="utf-8") as f:
+            f.write(line("20261016-100400", "dev", extra=["fmt=2", "newfield=x"]))
+        st = core.project_state("p", self.s)
+        self.assertTrue(st["newer_format"])
+        self.assertEqual(st["fmt"], 2)
+        self.assertTrue(any(r["id"] == "20261016-100400-dev" for r in st["runs"]))
+
+    def test_live_lock_with_newer_fmt_flags_newer_format(self):
+        s2 = self.root / "q" / ".scratch"
+        (s2 / "runs").mkdir(parents=True)
+        (s2 / "runs" / "worker.lock").write_text(
+            json.dumps({"launcher_pid": os.getpid(), "role": "dev", "stamp": "20261016-110000", "fmt": 3}),
+            encoding="utf-8")
+        st = core.project_state("q", s2)
+        self.assertTrue(st["newer_format"])
+        self.assertEqual(st["fmt"], 3)
+        self.assertEqual(st["live"], 1)
+
+    def test_fmt_of(self):
+        self.assertEqual(core.fmt_of(None), 1)
+        self.assertEqual(core.fmt_of("x"), 0)
+        self.assertEqual(core.fmt_of("2"), 2)
+
+
+class KitSamples(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        kit = os.environ.get("HDW_KIT_DIR")
+        if not kit:
+            raise unittest.SkipTest("set HDW_KIT_DIR to a hermes-dev-team checkout")
+        cls.fx = pathlib.Path(kit).resolve() / "tests" / "fixtures" / "watch"
+        if not (cls.fx / "runs.log").is_file():
+            raise AssertionError(f"kit samples missing: {(cls.fx / 'runs.log').as_posix()}")
+        cls.st = core.project_state("kit", cls.fx)
+        cls.by = {r["id"]: r for r in cls.st["runs"]}
+
+    def test_three_runs_by_id(self):
+        self.assertEqual(sorted(self.by), ["20261016-120000-dev", "20261016-120500-researcher",
+                                           "20261016-121000-docs"])
+
+    def test_dev_run_fields(self):
+        dev = self.by.get("20261016-120000-dev", {})
+        self.assertEqual(
+            (dev.get("verdict"), dev.get("turns"), dev.get("secs"), dev.get("cost"), dev.get("ticket"),
+             dev.get("feature"), dev.get("repo"), dev.get("backend")),
+            ("PASS 1a2b3c4", "18", "22", 0.1234, "01-mul.md", "calc", "proj", "claude"))
+
+    def test_format_is_known(self):
+        self.assertFalse(self.st["newer_format"], self.st["fmt"])
+
+    def test_progress_log_read(self):
+        text = (core.progress(self.fx, "20261016-120000-dev", 0) or {}).get("text", "")
+        for x in ("say: ", "Read calc.py", "DENIED Bash:"):
+            self.assertIn(x, text)
+
+    def test_lock_has_every_field_the_watcher_reads(self):
+        lock = json.loads((self.fx / "runs" / "worker.lock").read_text(encoding="utf-8"))
+        for k in ("launcher_pid", "worker_pid", "role", "ticket", "feature", "repo", "stamp"):
+            self.assertIn(k, lock)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        os.environ["HDW_KIT_DIR"] = str(pathlib.Path(sys.argv[1]).resolve())
+    unittest.main(argv=[sys.argv[0], "-v"])
