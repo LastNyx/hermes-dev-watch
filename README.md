@@ -4,10 +4,11 @@ A desktop app (Windows and Linux) for watching [hermes-dev-team](https://github.
 runs live, across every project on the machine.
 
 - **Live**: one card per running worker, in any project, showing its newest progress lines.
-- **Runs**: every run grouped by day, with role, ticket, verdict, duration and list cost; a text filter and a project
-  picker.
+- **Runs**: every run grouped by day, with role, ticket, verdict, duration and list cost; a project picker and a run
+  filter: verdict (pass / fail / no result / running), role, date (today / 7 / 30 days / all) and text, remembered
+  across restarts. The live board, toasts and the header's "today" stats ignore the filter.
 - **Run log**: the full progress log as it is written, which can be filtered to `say` / `edit` / `bash` / `denied` /
-  `error` lines.
+  `error` lines, and searched (plain text, Enter / Shift+Enter to step, Escape to clear; the first 1000 matches).
 - **Finished runs**: an in-app toast when a run ends, plus a desktop notification on Linux (`notify-send`).
 - **Settings (⚙)**: add or remove project folders with a folder picker.
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.3 - 2026-10-16
+
+Feature filters-search, built by hermes-dev-team dev and reviewer workers (14 tickets, 2 review batches).
+
+- Run filter: `core.filter_runs` and `project_state(flt)` (filter first, then the 200-run cap; `total`,
+  `run_count`, `live_runs`, `roles`, `today`), `Api.state(flt, open_run)`, and a filter bar in the page. The run
+  open in the detail view comes back from the reader even when the filter hides it.
+- Log search: `core.search_log` and `Api.search`; in the page, marks, `n of m`, stepping and wrap, line kinds
+  skipped.
+- Fixed (older than this feature): on Windows the run log showed every line raw, because progress logs have
+  `\r\n` endings; `progress()` now returns `\n`. A non-string run id from the page no longer raises.
+- Checked in a browser against the real reader (not the pywebview window); 13 unit tests.
+
 ## 0.3.2 - 2026-10-16
 
 - `tests/test_contract.py` (feature filters-search, ticket 01, by a dev worker): the contract checks under
