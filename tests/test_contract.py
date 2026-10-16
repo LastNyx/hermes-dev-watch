@@ -47,6 +47,25 @@ class HandMadeFiles(unittest.TestCase):
             with self.subTest(run_id=bad):
                 self.assertIsNone(core.progress(self.s, bad, 0))
 
+    def test_progress_crlf_log_reads_as_lf_in_small_reads(self):
+        lines = ["alpha one", "beta\rtwo", "gamma three", "delta"]
+        (self.s / "runs" / "20261016-100000-dev.progress.log").write_bytes(
+            "".join(x + "\r\n" for x in lines).encode())
+        size = (self.s / "runs" / "20261016-100000-dev.progress.log").stat().st_size
+        text, off = "", 0
+        orig = core.CHUNK
+        core.CHUNK = 14
+        try:
+            for _ in range(50):
+                p = core.progress(self.s, "20261016-100000-dev", off)
+                text, off = text + p["text"], p["offset"]
+                if off == size:
+                    break
+        finally:
+            core.CHUNK = orig
+        self.assertEqual(text, "".join(x + "\n" for x in lines))
+        self.assertEqual(off, size)
+
     def test_fmt_above_known_format_flags_newer_but_lists_run(self):
         with open(self.s / "runs.log", "a", encoding="utf-8") as f:
             f.write(line("20261016-100400", "dev", extra=["fmt=2", "newfield=x"]))

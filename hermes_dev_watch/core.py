@@ -226,7 +226,8 @@ def progress(scratch, rid, offset):
         f.seek(offset)
         data = f.read(CHUNK)
     cut = data.rfind(b"\n") + 1                            # only whole lines; the rest comes next poll
-    return {"text": data[:cut].decode("utf-8", "replace"), "offset": offset + cut, "size": size}
+    text = data[:cut].decode("utf-8", "replace").replace("\r\n", "\n")   # Windows logs: \r\n -> \n
+    return {"text": text, "offset": offset + cut, "size": size}
 
 
 def load_config(path=CONFIG):
