@@ -23,6 +23,9 @@ select{-webkit-appearance:none;appearance:none;padding-right:28px;cursor:pointer
  background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat}
 select option{background:var(--panel);color:var(--fg)}
 #q{width:190px}
+#fbar{display:flex;align-items:center;gap:6px;padding:6px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+#fbar .btn{padding:2px 8px;font-size:12px}#fbar select{padding:2px 24px 2px 8px;font-size:12px}
+#fbar .sep{width:1px;height:16px;background:var(--line);margin:0 4px}
 .sp{flex:1}
 .stat{color:var(--mut);font-size:12px;white-space:nowrap}.stat b{color:var(--fg);font-weight:600}
 .btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;white-space:nowrap}
@@ -87,6 +90,7 @@ main{flex:1;min-width:0;display:flex;flex-direction:column}
  <button class="btn" id="livebtn">Live</button>
  <button class="btn" id="setbtn" title="Project folders">⚙</button>
 </header>
+<div id="fbar"></div>
 <div id="toasts"></div>
 <div class="wrap"><aside id="side"></aside><main id="main"></main></div>
 <script>
@@ -114,32 +118,49 @@ function kind(x){if(x.startsWith('say: '))return['say','says',x.slice(5)];if(x.s
 function lineHTML(l){const m=l.match(/^\s*\[\s*(\d+)s\]\s?(.*)$/);
  if(!m)return`<div class="l"><span class="ts"></span><span class="k"></span><span class="x">${esc(l)}</span></div>`;
  const [k,t,x]=kind(m[2]);return`<div class="l ${k}" data-k="${k||'other'}"><span class="ts">${dur(m[1])}</span><span class="k">${esc(t)}</span><span class="x" title="${esc(x)}">${esc(x)}</span></div>`}
-function allRuns(){return S.projects.filter(p=>proj==='*'||p.id===proj).flatMap(p=>p.runs).sort((a,b)=>a.stamp<b.stamp?1:a.stamp>b.stamp?-1:0)}
-function liveRuns(){return allRuns().filter(r=>r.live)}
-function find(pid,id){const p=S.projects.find(x=>x.id===pid);return p&&p.runs.find(r=>r.id===id)}
+// the run filter (sent to the reader on every poll); `filt` above is the line-kind filter of a run's log
+const VGROUPS=[['pass','pass'],['fail','fail'],['none','no result'],['running','running']],DAYSEL=[['today','Today'],['7','7 days'],['30','30 days'],['all','All']];
+function loadRF(){let o={};try{o=JSON.parse(store.get('runfilter'))||{}}catch(e){}
+ const arr=a=>Array.isArray(a)?a.filter(x=>typeof x==='string'):[];
+ return{verdict:arr(o.verdict),role:arr(o.role),days:DAYSEL.some(d=>d[0]===o.days)?o.days:'all',q:typeof o.q==='string'?o.q:''}}
+let runFilter=loadRF();
+const saveRF=()=>store.set('runfilter',JSON.stringify(runFilter));
+function shown(){return S.projects.filter(p=>proj==='*'||p.id===proj)}
+function allRuns(){return shown().flatMap(p=>p.runs).sort((a,b)=>a.stamp<b.stamp?1:a.stamp>b.stamp?-1:0)}
+function liveRuns(){return shown().flatMap(p=>p.live_runs||[]).sort((a,b)=>a.stamp<b.stamp?1:a.stamp>b.stamp?-1:0)}
+function find(pid,id){const p=S.projects.find(x=>x.id===pid);return p&&(p.runs.find(r=>r.id===id)||(p.live_runs||[]).find(r=>r.id===id))}
+function renderBar(){
+ const roles=[...new Set(shown().flatMap(p=>p.roles||[]))].sort(),chip=(k,v,n)=>`<button class="btn ${runFilter[k].includes(v)?'on':''}" data-rf="${k}" data-v="${esc(v)}">${esc(n)}</button>`;
+ const h=VGROUPS.map(([v,n])=>chip('verdict',v,n)).join('')+'<span class="sep"></span>'+roles.map(r=>chip('role',r,r)).join('')+
+  `<select id="rfdays">${DAYSEL.map(([v,n])=>`<option value="${v}" ${runFilter.days===v?'selected':''}>${n}</option>`).join('')}</select><button class="btn" id="rfclear">Clear filters</button>`;
+ const bar=$('fbar');if(bar.dataset.h===h)return;bar.dataset.h=h;bar.innerHTML=h;
+ for(const b of bar.querySelectorAll('[data-rf]'))b.onclick=()=>{const a=runFilter[b.dataset.rf],i=a.indexOf(b.dataset.v);i<0?a.push(b.dataset.v):a.splice(i,1);changed()};
+ $('rfdays').onchange=e=>{runFilter.days=e.target.value;changed()};
+ $('rfclear').onclick=()=>{runFilter={verdict:[],role:[],days:'all',q:''};$('q').value='';changed()};
+}
+async function changed(){saveRF();renderBar();try{S=await API.state(runFilter);render()}catch(e){$('stats').textContent='reader error: '+e}}
 function renderTop(){
  const opts=[['*','All projects',S.projects.reduce((a,p)=>a+p.live,0)],...S.projects.map(p=>[p.id,p.id,p.live])];
  if(!opts.some(o=>o[0]===proj))proj='*';
  const h=opts.map(([v,n,l])=>`<option value="${esc(v)}" ${v===proj?'selected':''}>${esc(n)}${l?` · ${l} running`:''}</option>`).join('');
  if($('proj').dataset.h!==h){$('proj').innerHTML=h;$('proj').dataset.h=h}
- const rs=allRuns(),today=ymd(new Date()),td=rs.filter(r=>r.stamp.startsWith(today)&&!r.live);
- const pass=td.filter(r=>vk(r.verdict)==='ok').length,cost=td.reduce((a,r)=>a+(r.cost||0),0),lv=liveRuns().length;
- $('stats').innerHTML=`today <b>${td.length}</b> runs · <b class="ok">${pass}</b> pass · <b class="bad">${td.length-pass}</b> fail · list <b>$${cost.toFixed(2)}</b>`;
+ const tds=shown().map(p=>p.today||{}),n=tds.reduce((a,t)=>a+(t.runs||0),0),pass=tds.reduce((a,t)=>a+(t.pass||0),0),cost=tds.reduce((a,t)=>a+(t.cost||0),0),lv=liveRuns().length;
+ $('stats').innerHTML=`today <b>${n}</b> runs · <b class="ok">${pass}</b> pass · <b class="bad">${n-pass}</b> fail · list <b>$${cost.toFixed(2)}</b>`;
  const nf=S.projects.filter(p=>p.newer_format);$('fmtwarn').hidden=!nf.length;
  $('fmtwarn').textContent=nf.length?`⚠ kit format ${Math.max(...nf.map(p=>p.fmt))} is newer than this watcher (${S.known_format??1}): update hermes-dev-watch`:'';
  $('fmtwarn').title=nf.length?'Some fields may be missing or wrong in: '+nf.map(p=>p.id).join(', '):'';
  $('beacon').className=lv?'on':'';$('livebtn').textContent=`Live${lv?' · '+lv:''}`;$('livebtn').classList.toggle('on',view.k==='live');
 }
 function renderSide(){
- const q=$('q').value.trim().toLowerCase(),rs=allRuns().filter(r=>!q||[r.role,r.ticket,r.feature,r.verdict,r.project,r.model].join(' ').toLowerCase().includes(q));
- let h='',last='';
+ const rs=allRuns();
+ let h=shown().filter(p=>p.total>p.runs.length).map(p=>`<div class="day">${esc(p.id)}: showing ${p.runs.length} of ${p.total}</div>`).join(''),last='';
  for(const r of rs){const d=dayLabel(sdate(r.stamp));if(d!==last){h+=`<div class="day">${d}</div>`;last=d}
   const sel=view.k==='run'&&view.p===r.project&&view.id===r.id;
   h+=`<div class="run ${sel?'sel':''}" data-p="${esc(r.project)}" data-id="${r.id}"><div class="row">
    ${r.live?'<span class="pulse"></span>':''}<span class="role" style="${rc(r.role)}">${esc(r.role)}</span>
    ${proj==='*'?`<span class="proj">${esc(r.project)}</span>`:''}<span class="when">${hm(sdate(r.stamp))}${!r.live&&r.secs?' · '+dur(r.secs):''}</span></div>
    <div class="what" title="${esc(r.feature)}">${esc(title(r))}</div><div class="v">${vtxt(r)}</div></div>`}
- const sc=$('side').scrollTop;$('side').innerHTML=h||'<div class="empty" style="padding:30px">No runs</div>';$('side').scrollTop=sc;
+ const sc=$('side').scrollTop;$('side').innerHTML=rs.length?h:h+'<div class="empty" style="padding:30px">No runs</div>';$('side').scrollTop=sc;
  for(const d of document.querySelectorAll('.run'))d.onclick=()=>open(d.dataset.p,d.dataset.id);
 }
 function open(p,id){view={k:'run',p,id};logFor=null;render();pull()}
@@ -171,7 +192,7 @@ function renderDetail(){
  $('fol').onchange=e=>follow=e.target.checked;
  for(const b of document.querySelectorAll('[data-f]'))b.onclick=()=>{filt=b.dataset.f;renderDetail()};
 }
-function render(){renderTop();renderSide();if(view.k==='run')renderDetail();else if(view.k==='settings')renderSettings();else renderBoard()}
+function render(){renderTop();renderBar();renderSide();if(view.k==='run')renderDetail();else if(view.k==='settings')renderSettings();else renderBoard()}
 let pulling=false;
 async function pull(){
  if(view.k!=='run'||pulling)return;const L=$('log');if(!L)return;pulling=true;const key=logFor;
@@ -183,20 +204,25 @@ async function pull(){
   if(!L.children.length&&!p.text)L.innerHTML='<div class="empty" style="padding:30px">No progress log for this run<br><small>runs/ stays on the machine that ran it</small></div>';
  }finally{pulling=false}}
 async function tick(){
- try{S=await API.state();notifyDone();if(view.k==='settings'&&$('setv'))renderTop();else render();await pull()}catch(e){$('stats').textContent='reader error: '+e}
+ try{S=await API.state(runFilter);await notifyDone();if(view.k==='settings'&&$('setv'))renderTop();else render();await pull()}catch(e){$('stats').textContent='reader error: '+e}
  setTimeout(tick,1000)}
 const st=document.createElement('style');st.id='fs';document.head.appendChild(st);
 $('proj').onchange=e=>{proj=e.target.value;store.set('proj',proj);if(view.k==='run'&&proj!=='*'&&view.p!==proj)view={k:'live'};render()};
-$('q').oninput=renderSide;
+$('q').value=runFilter.q;
+$('q').oninput=()=>{runFilter.q=$('q').value.trim();changed()};
 $('livebtn').onclick=()=>{view={k:'live'};render()};
 
 // --- desktop app: Python bridge (pywebview), settings, finished-run toasts ---
-const API={state:()=>window.pywebview.api.state(),progress:(p,r,o)=>window.pywebview.api.progress(p,r,o),
+const API={state:flt=>window.pywebview.api.state(flt),progress:(p,r,o)=>window.pywebview.api.progress(p,r,o),
  config:()=>window.pywebview.api.get_config(),save:c=>window.pywebview.api.save_config(c),pick:()=>window.pywebview.api.pick_folder()};
-function notifyDone(){
- const now=new Map(S.projects.flatMap(p=>p.runs.filter(r=>r.live).map(r=>[r.project+'\n'+r.id,r])));
- if(seenLive)for(const k of seenLive.keys())if(!now.has(k)){const [pp,id]=k.split('\n'),r=find(pp,id);if(r)toast(r)}
- seenLive=now}
+async function notifyDone(){
+ const now=new Map(S.projects.flatMap(p=>(p.live_runs||[]).map(r=>[r.project+'\n'+r.id,r])));
+ const gone=seenLive?[...seenLive.keys()].filter(k=>!now.has(k)):[];
+ seenLive=now;
+ if(!gone.length)return;
+ // the finished run may be cut by the run filter: read it from an unfiltered state
+ let all=S;if(gone.some(k=>{const [pp,id]=k.split('\n');return!find(pp,id)||find(pp,id).live}))try{all=await API.state({})}catch(e){}
+ for(const k of gone){const [pp,id]=k.split('\n'),p=all.projects.find(x=>x.id===pp),r=p&&p.runs.find(x=>x.id===id);if(r&&!r.live)toast(r)}}
 function toast(r){const ok=vk(r.verdict)==='ok',d=document.createElement('div');d.className='toast';d.style.cssText=`--c:var(--${ok?'ok':'bad'})`;
  d.innerHTML=`<div class="row"><span class="role" style="${rc(r.role)}">${esc(r.role)}</span><span class="proj">${esc(r.project)}</span></div>
   <div class="what">${esc(title(r))}</div><div class="v">${vtxt(r)}</div>`;
@@ -211,8 +237,8 @@ async function renderSettings(){
   <h3>Single scratch folders</h3><p>A project's <code>.scratch</code> (or a workspace scratch folder) outside any root.</p>${list('scratch','folders')}<button class="btn" data-add="scratch">+ Add scratch folder…</button>
   <h3>Found now</h3><div class="found">${S.projects.map(p=>`<div>${esc(p.id)} — ${p.runs.length} runs · <code>${esc(p.path)}</code></div>`).join('')||'none'}</div>
   <br><button class="btn" id="setdone">Done</button></div>`;
- for(const b of document.querySelectorAll('[data-del]'))b.onclick=async()=>{const [k,i]=b.dataset.del.split(':');CFG[k].splice(+i,1);CFG=await API.save(CFG);S=await API.state();renderSettings()};
- for(const b of document.querySelectorAll('[data-add]'))b.onclick=async()=>{const f=await API.pick();if(f&&!CFG[b.dataset.add].includes(f)){CFG[b.dataset.add].push(f);CFG=await API.save(CFG);S=await API.state()}renderSettings()};
+ for(const b of document.querySelectorAll('[data-del]'))b.onclick=async()=>{const [k,i]=b.dataset.del.split(':');CFG[k].splice(+i,1);CFG=await API.save(CFG);S=await API.state(runFilter);renderSettings()};
+ for(const b of document.querySelectorAll('[data-add]'))b.onclick=async()=>{const f=await API.pick();if(f&&!CFG[b.dataset.add].includes(f)){CFG[b.dataset.add].push(f);CFG=await API.save(CFG);S=await API.state(runFilter)}renderSettings()};
  $('setdone').onclick=()=>{view={k:'live'};render()};
 }
 $('setbtn').onclick=()=>{view={k:'settings'};CFG=null;render()};
