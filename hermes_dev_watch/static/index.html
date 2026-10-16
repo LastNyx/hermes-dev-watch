@@ -237,7 +237,7 @@ async function renderSettings(){
  $('main').innerHTML=`<div class="set" id="setv"><h2>Project folders</h2><p>Saved in <code>${esc(CFG.path)}</code>. Changes apply at once.</p>
   <h3>Roots</h3><p>Every <code>.scratch</code> with runs, up to 3 folders below.</p>${list('roots','roots')}<button class="btn" data-add="roots">+ Add root…</button>
   <h3>Single scratch folders</h3><p>A project's <code>.scratch</code> (or a workspace scratch folder) outside any root.</p>${list('scratch','folders')}<button class="btn" data-add="scratch">+ Add scratch folder…</button>
-  <h3>Found now</h3><div class="found">${S.projects.map(p=>`<div>${esc(p.id)} — ${p.runs.length} runs · <code>${esc(p.path)}</code></div>`).join('')||'none'}</div>
+  <h3>Found now</h3><div class="found">${S.projects.map(p=>`<div>${esc(p.id)} — ${p.run_count} runs · <code>${esc(p.path)}</code></div>`).join('')||'none'}</div>
   <br><button class="btn" id="setdone">Done</button></div>`;
  for(const b of document.querySelectorAll('[data-del]'))b.onclick=async()=>{const [k,i]=b.dataset.del.split(':');CFG[k].splice(+i,1);CFG=await API.save(CFG);S=await API.state(runFilter);renderSettings()};
  for(const b of document.querySelectorAll('[data-add]'))b.onclick=async()=>{const f=await API.pick();if(f&&!CFG[b.dataset.add].includes(f)){CFG[b.dataset.add].push(f);CFG=await API.save(CFG);S=await API.state(runFilter)}renderSettings()};

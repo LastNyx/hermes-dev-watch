@@ -126,6 +126,8 @@ class HandMadeFiles(unittest.TestCase):
         self.assertEqual((len(st["runs"]), st["total"]), (2, 4))
         self.assertEqual([x["id"] for x in st["live_runs"]], ["20261016-120000-dev"])
         self.assertEqual(st["roles"], ["dev", "dev2", "fix-dev", "review"])
+        self.assertEqual(st["run_count"], 6)
+        self.assertEqual(core.project_state("p", self.s, None, now)["run_count"], 6)
         self.assertEqual(st["today"], {"runs": 4, "pass": 4, "cost": 0.04})
 
     def test_fmt_of(self):
