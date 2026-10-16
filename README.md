@@ -75,13 +75,23 @@ again every 15 s, so a new project shows up after its first run.
 
 ## File format (the contract with hermes-dev-team)
 
+The kit owns the format: its [docs/watch-contract.md](https://github.com/LastNyx/hermes-dev-team/blob/main/docs/watch-contract.md) is the spec, and its `tests/fixtures/watch/` holds samples written by its real launcher code.
+Both CIs check that this watcher reads them: the kit's on every kit push, this repo's on every push here and
+weekly (`python tests/contract.py <kit checkout>`, stdlib only).
+
 | File | Written by (kit) | Format |
 |---|---|---|
 | `runs.log` | `run-worker.py` `report()`, one line per finished run | tab-separated: `stamp`, `role`, `model`, `verdict`, then `turns=`, `<secs>s`, and `key=value` fields (`list$`, `denials`, `feature`, `ticket`, `repo`, `backend`, …) |
 | `runs/<stamp>-<role>.progress.log` | `run-worker.py` `stream_worker()`, while the run happens | one line per event: `  [  12s] <text>`. `<text>` is `<Tool> <arg>`, `say: <worker text>` (kit 0.13.2+), `DENIED <tool>: …` or `exit!=0 <tool>: …` |
 | `runs/*.lock` | the launcher, while a worker runs | JSON with `launcher_pid`, `worker_pid`, `role`, `ticket`, `feature`, `repo`, `stamp`. The run is live when either pid is alive. Today the kit writes only `worker.lock`; any other `*.lock` (one per repo or role, or the fake workers' `fake-N.lock`) is shown the same way |
 
-`<stamp>` is `YYYYMMDD-HHMMSS`. A run's id is `<stamp>-<role>`, and that id links the three files. The kit keeps
+`<stamp>` is `YYYYMMDD-HHMMSS`. A run's id is `<stamp>-<role>` (role: lowercase letters, digits and `-`), and that
+id links the three files.
+
+Format version: kit 0.13.3+ writes `fmt=<n>` at the end of each `runs.log` line and `"fmt": <n>` in the lock (a
+line or lock without it is format 1). When a project shows a format above the one this watcher knows
+(`core.KNOWN_FORMAT`), the header says "kit format <n> is newer than this watcher: update hermes-dev-watch" and
+the runs are still shown as well as it can. The kit keeps
 `runs/` out of the scratch git repo, so a run made on another machine shows its verdict but no log.
 
 ## Status

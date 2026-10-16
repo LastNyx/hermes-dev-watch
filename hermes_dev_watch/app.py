@@ -19,7 +19,8 @@ class Api:
         self._projects, self._cfg_path, self._window = projects, cfg_path, None
 
     def state(self):
-        return {"projects": [core.project_state(pid, s) for pid, s in sorted(self._projects.get().items())]}
+        return {"projects": [core.project_state(pid, s) for pid, s in sorted(self._projects.get().items())],
+                "known_format": core.KNOWN_FORMAT}
 
     def progress(self, project, run, offset):
         scratch = self._projects.get().get(project)                 # only a known project, never a path from the page

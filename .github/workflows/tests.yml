@@ -1,0 +1,39 @@
+# The run-file contract with hermes-dev-team, from the watcher's side: the reader on hand-made files, then on the
+# kit's own samples from its main branch. On every push and PR here, and weekly, so a kit change is caught even when
+# this repo is quiet (the kit's CI also runs this repo's parser on every kit push). Stdlib only: no pywebview, no
+# window. No secrets: both repos are public. Actions pinned by commit SHA.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 3 * * 1"          # Mondays 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: LastNyx/hermes-dev-team
+          ref: main
+          path: .ci/hermes-dev-team
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: contract (hand-made files and the kit's samples)
+        run: python tests/contract.py .ci/hermes-dev-team

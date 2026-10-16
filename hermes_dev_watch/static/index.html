@@ -82,6 +82,7 @@ main{flex:1;min-width:0;display:flex;flex-direction:column}
  <select id="proj"></select>
  <input id="q" placeholder="Filter: role, ticket, verdict…">
  <span class="sp"></span>
+ <span class="stat warn" id="fmtwarn" hidden></span>
  <span class="stat" id="stats"></span>
  <button class="btn" id="livebtn">Live</button>
  <button class="btn" id="setbtn" title="Project folders">⚙</button>
@@ -124,6 +125,9 @@ function renderTop(){
  const rs=allRuns(),today=ymd(new Date()),td=rs.filter(r=>r.stamp.startsWith(today)&&!r.live);
  const pass=td.filter(r=>vk(r.verdict)==='ok').length,cost=td.reduce((a,r)=>a+(r.cost||0),0),lv=liveRuns().length;
  $('stats').innerHTML=`today <b>${td.length}</b> runs · <b class="ok">${pass}</b> pass · <b class="bad">${td.length-pass}</b> fail · list <b>$${cost.toFixed(2)}</b>`;
+ const nf=S.projects.filter(p=>p.newer_format);$('fmtwarn').hidden=!nf.length;
+ $('fmtwarn').textContent=nf.length?`⚠ kit format ${Math.max(...nf.map(p=>p.fmt))} is newer than this watcher (${S.known_format??1}): update hermes-dev-watch`:'';
+ $('fmtwarn').title=nf.length?'Some fields may be missing or wrong in: '+nf.map(p=>p.id).join(', '):'';
  $('beacon').className=lv?'on':'';$('livebtn').textContent=`Live${lv?' · '+lv:''}`;$('livebtn').classList.toggle('on',view.k==='live');
 }
 function renderSide(){

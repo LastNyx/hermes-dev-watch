@@ -8,7 +8,12 @@ import json, os, pathlib, re, sys, threading, time
 CONFIG = pathlib.Path(os.environ.get("APPDATA") if sys.platform == "win32" and os.environ.get("APPDATA")
                       else os.environ.get("XDG_CONFIG_HOME") or "~/.config").expanduser() / "hermes-dev-watch" / "config.json"
 
-RUN_ID = re.compile(r"^\d{8}-\d{6}-[a-z]+$")          # <stamp>-<role>, the progress log's stem
+# <stamp>-<role>, the progress log's stem. Roles may have digits and `-` (e.g. a future `fix-dev`); no `/` or `.`,
+# so an id can never leave runs/.
+RUN_ID = re.compile(r"^\d{8}-\d{6}-[a-z][a-z0-9-]*$")
+# Newest run-file format this watcher reads (the kit's teamcfg.RUN_FORMAT, written as fmt= / "fmt"; see the kit's
+# docs/watch-contract.md). A line or lock without fmt is format 1 (kit 0.13.2 and older).
+KNOWN_FORMAT = 1
 MAX_RUNS = 200                                         # newest runs listed per project
 CHUNK = 256 * 1024                                     # most progress bytes sent per poll
 TAIL_LINES = 14                                        # lines shown on a live tile
@@ -75,8 +80,19 @@ def runs_log(scratch):
             cost = None
         out[f"{f[0]}-{f[1]}"] = {"model": f[2], "verdict": f[3], "turns": kv.get("turns"), "secs": f[5].rstrip("s"),
                                  "cost": cost, "ticket": kv.get("ticket"), "feature": kv.get("feature"),
-                                 "repo": kv.get("repo"), "denials": kv.get("denials"), "backend": kv.get("backend")}
+                                 "repo": kv.get("repo"), "denials": kv.get("denials"), "backend": kv.get("backend"),
+                                 "fmt": fmt_of(kv.get("fmt"))}
     return out
+
+
+def fmt_of(v):
+    """The run-file format of a runs.log line or lock: an int, 1 when absent, 0 when unreadable."""
+    if v is None:
+        return 1
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return 0
 
 
 def pid_alive(pid):
@@ -149,7 +165,9 @@ def project_state(pid, scratch):
         elif "verdict" not in r:
             r["verdict"] = "NO RESULT stopped or crashed"
         runs.append(r)
-    return {"id": pid, "path": scratch.as_posix(), "runs": runs, "live": len(live)}
+    seen = max([r.get("fmt", 1) for r in logged.values()] + [fmt_of(d.get("fmt")) for d in live.values()] + [1])
+    return {"id": pid, "path": scratch.as_posix(), "runs": runs, "live": len(live), "fmt": seen,
+            "newer_format": seen > KNOWN_FORMAT}
 
 
 def progress(scratch, rid, offset):

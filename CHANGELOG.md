@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0 - 2026-10-16
+
+Follow the kit's run-file format (hermes-dev-team 0.13.3+, its `docs/watch-contract.md`).
+
+- `hermes_dev_watch/core.py`: reads `fmt` from `runs.log` lines and locks (absent = 1); `project_state` returns
+  `fmt` and `newer_format` when a project has a format above `KNOWN_FORMAT` (1). Run ids accept roles with digits
+  and `-` (`[a-z][a-z0-9-]*`; still no `/` or `.`), so a future role like `fix-dev` is listed, not dropped.
+- `hermes_dev_watch/static/index.html`: a header warning "kit format <n> is newer than this watcher: update
+  hermes-dev-watch" (the project names in its tooltip). Checked in a browser with a mocked bridge: shown for
+  format 2, hidden for 1; a `fix-dev` run is listed.
+- `tests/contract.py` (new, stdlib only): 10 checks on hand-made files (format versions, role names, run ids that
+  try to leave `runs/`) and 5 on the kit's samples when given a kit checkout. 0.2.0's reader crashes on it.
+- `.github/workflows/tests.yml` (new): the contract on Linux and Windows against the kit's `main`, on every push,
+  PR and weekly. No secrets.
+- `tools/fake_worker.py`: writes `fmt=1` like the kit.
+
 ## 0.2.0 - 2026-10-16
 
 Desktop app for Windows and Linux; the web page mode is gone.

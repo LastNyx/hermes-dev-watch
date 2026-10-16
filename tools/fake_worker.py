@@ -87,7 +87,8 @@ def one_run(scratch, role, lockname, speed, fail_rate, stop):
         time.sleep(1)
     lock = runs / lockname
     lock.write_text(json.dumps({"launcher_pid": os.getpid(), "worker_pid": os.getpid(), "role": role, "ticket": ticket,
-                                "feature": ctx["feature"], "repo": scratch.parent.name, "stamp": stamp}), encoding="utf-8")
+                                "feature": ctx["feature"], "repo": scratch.parent.name, "stamp": stamp, "fmt": 1}),
+                    encoding="utf-8")
     t0, steps, denials = time.time(), [], 0
     for s in ROLES[role]:
         if s.startswith("?"):                       # optional line: a denial or a failed command, sometimes
@@ -113,7 +114,7 @@ def one_run(scratch, role, lockname, speed, fail_rate, stop):
                                f"{secs}s", f"out={random.randint(900, 9000)}", f"list$={random.uniform(0.02, 0.4):.4f}",
                                f"denials={denials}", f"{runs.as_posix()}/{stamp}-{role}.json", f"feature={ctx['feature']}",
                                "test=yarn --cwd backend typecheck", "in=12", "cw=30000", "cr=200000",
-                               f"repo={scratch.parent.name}", "backend=fake", f"ticket={ticket}"]) + "\n")
+                               f"repo={scratch.parent.name}", "backend=fake", f"ticket={ticket}", "fmt=1"]) + "\n")
         print(f"  done  {scratch.parent.name:<14} {role:<10} {verdict}", flush=True)
     finally:
         try:
