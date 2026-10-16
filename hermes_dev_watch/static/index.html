@@ -104,7 +104,6 @@ const ROLES=['dev','reviewer','docs','researcher'];
 const rc=r=>`--c:var(--${ROLES.includes(r)?r:'other'})`;
 const sdate=s=>new Date(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8),+s.slice(9,11),+s.slice(11,13),+s.slice(13,15));
 const hm=d=>d.toTimeString().slice(0,5);
-const ymd=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
 function dayLabel(d){const t=new Date();t.setHours(0,0,0,0);const x=new Date(d);x.setHours(0,0,0,0);
  const n=Math.round((t-x)/864e5);return n===0?'Today':n===1?'Yesterday':x.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}
 function dur(s){s=+s;if(!(s>=0))return'';return s<60?s+'s':s<3600?Math.floor(s/60)+'m '+(s%60)+'s':Math.floor(s/3600)+'h '+Math.floor(s%3600/60)+'m'}

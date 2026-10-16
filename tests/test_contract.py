@@ -96,7 +96,7 @@ class HandMadeFiles(unittest.TestCase):
                 r("20260920-100000", "dev", "ERROR x"),
                 r("20261016-090000", "dev", "NO RESULT stopped"),
                 r("20261016-080000", "dev", None, live=True)]
-        ids = lambda flt: [x["id"][:15] + x["id"][15:] for x in core.filter_runs(runs, flt, now)]
+        ids = lambda flt: [x["id"] for x in core.filter_runs(runs, flt, now)]
         all_ids = [x["id"] for x in runs]
         for bad in (None, "x", [], {}, {"zzz": 1}, {"verdict": "pass", "role": 5, "days": "9", "q": 7},
                     {"verdict": ["bogus"], "role": ["Bad/x"]}):
