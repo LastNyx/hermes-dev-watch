@@ -3,7 +3,7 @@
 Reads each project's <scratch>/runs.log, <scratch>/runs/*.progress.log and <scratch>/runs/*.lock (see README
 "File format"). Writes nothing in any project; the only file it writes is its own config.json.
 """
-import json, os, pathlib, re, sys, threading, time
+import datetime, json, os, pathlib, re, sys, threading, time
 
 CONFIG = pathlib.Path(os.environ.get("APPDATA") if sys.platform == "win32" and os.environ.get("APPDATA")
                       else os.environ.get("XDG_CONFIG_HOME") or "~/.config").expanduser() / "hermes-dev-watch" / "config.json"
@@ -149,14 +149,52 @@ def tail(path, n):
     return lines[-n:] if size <= 8192 else lines[1:][-n:]
 
 
-def project_state(pid, scratch):
+GROUPS = ("running", "pass", "fail", "none")
+DAYS = {"today": 1, "7": 7, "30": 30}
+ROLE_NAME = re.compile(r"^[a-z0-9-]+$")
+
+
+def verdict_group(r):
+    v = r.get("verdict") or ""
+    if r.get("live"):
+        return "running"
+    return "pass" if v.startswith("PASS") else "fail" if v.startswith(("FAIL", "ERROR")) else "none"
+
+
+def filter_runs(runs, flt, now):
+    """The runs matching the run filter, same order. flt comes from the page: bad input is ignored, never raises."""
+    flt = flt if isinstance(flt, dict) else {}
+    v, ro, days, q = flt.get("verdict"), flt.get("role"), flt.get("days"), flt.get("q")
+    v = {x for x in v if x in GROUPS} if isinstance(v, list) else set()
+    ro = {x for x in ro if isinstance(x, str) and ROLE_NAME.match(x)} if isinstance(ro, list) else set()
+    q = q[:200].lower() if isinstance(q, str) else ""
+    first = None
+    if isinstance(days, str) and days in DAYS:
+        first = (now.date() - datetime.timedelta(days=DAYS[days] - 1)).strftime("%Y%m%d")
+    out = []
+    for r in runs:
+        if v and verdict_group(r) not in v:
+            continue
+        if ro and r.get("role") not in ro:
+            continue
+        if first and str(r.get("stamp") or "")[:8] < first:
+            continue
+        if q and q not in " ".join(str(r.get(k) or "") for k in
+                                   ("role", "ticket", "feature", "verdict", "project", "model")).lower():
+            continue
+        out.append(r)
+    return out
+
+
+def project_state(pid, scratch, flt=None, now=None, open_run=None):
+    now = now or datetime.datetime.now()
     runs_dir = scratch / "runs"
     logged = runs_log(scratch)
     live = {f"{d.get('stamp')}-{d.get('role')}": d for d in live_locks(scratch)}
     ids = {p.name[:-len(".progress.log")] for p in runs_dir.glob("*.progress.log")} if runs_dir.is_dir() else set()
     ids |= set(logged) | set(live)
     runs = []
-    for rid in sorted((i for i in ids if RUN_ID.match(i)), reverse=True)[:MAX_RUNS]:
+    for rid in sorted((i for i in ids if RUN_ID.match(i)), reverse=True):
         r = {"id": rid, "project": pid, "stamp": rid[:15], "role": rid[16:], **logged.get(rid, {})}
         if rid in live:
             lk = live[rid]
@@ -166,12 +204,19 @@ def project_state(pid, scratch):
             r["verdict"] = "NO RESULT stopped or crashed"
         runs.append(r)
     seen = max([r.get("fmt", 1) for r in logged.values()] + [fmt_of(d.get("fmt")) for d in live.values()] + [1])
-    return {"id": pid, "path": scratch.as_posix(), "runs": runs, "live": len(live), "fmt": seen,
-            "newer_format": seen > KNOWN_FORMAT}
+    matched = filter_runs(runs, flt, now)
+    today = now.strftime("%Y%m%d")
+    done = [r for r in runs if not r.get("live") and r["stamp"][:8] == today]
+    opened = next((r for r in runs if r["id"] == open_run), None) if isinstance(open_run, str) else None
+    return {"id": pid, "path": scratch.as_posix(), "open": opened, "runs": matched[:MAX_RUNS], "total": len(matched), "run_count": len(runs),
+            "live_runs": [r for r in runs if r.get("live")], "roles": sorted({r["role"] for r in runs}),
+            "today": {"runs": len(done), "pass": sum(verdict_group(r) == "pass" for r in done),
+                      "cost": sum(r["cost"] for r in done if r.get("cost") is not None)},
+            "live": len(live), "fmt": seen, "newer_format": seen > KNOWN_FORMAT}
 
 
 def progress(scratch, rid, offset):
-    if not RUN_ID.match(rid or ""):
+    if not (isinstance(rid, str) and RUN_ID.match(rid)):
         return None
     p = scratch / "runs" / f"{rid}.progress.log"
     if not p.is_file():
@@ -182,7 +227,21 @@ def progress(scratch, rid, offset):
         f.seek(offset)
         data = f.read(CHUNK)
     cut = data.rfind(b"\n") + 1                            # only whole lines; the rest comes next poll
-    return {"text": data[:cut].decode("utf-8", "replace"), "offset": offset + cut, "size": size}
+    text = data[:cut].decode("utf-8", "replace").replace("\r\n", "\n")   # Windows logs: \r\n -> \n
+    return {"text": text, "offset": offset + cut, "size": size}
+
+
+def search_log(scratch, rid, text):
+    if not (isinstance(rid, str) and RUN_ID.match(rid)):
+        return None
+    p = scratch / "runs" / f"{rid}.progress.log"
+    text = (text.strip() if isinstance(text, str) else "")[:200].lower()
+    if not text or not p.is_file():
+        return {"lines": [], "total": 0, "capped": False}
+    raw = p.read_bytes().decode("utf-8", "replace").replace("\r\n", "\n")
+    shown = [ln for ln in raw.split("\n") if ln.strip()]       # numbered as the page shows them
+    hits = [i for i, ln in enumerate(shown) if text in ln.lower()]
+    return {"lines": hits[:1000], "total": len(hits), "capped": len(hits) > 1000}
 
 
 def load_config(path=CONFIG):

@@ -1,0 +1,5 @@
+{
+ "test": "python -m unittest discover -s tests -v",
+ "glossary": "GLOSSARY.md",
+ "protected": ["*.yml", "*.yaml", "*.spec", "requirements.txt"]
+}

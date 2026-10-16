@@ -23,6 +23,9 @@ select{-webkit-appearance:none;appearance:none;padding-right:28px;cursor:pointer
  background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat}
 select option{background:var(--panel);color:var(--fg)}
 #q{width:190px}
+#fbar{display:flex;align-items:center;gap:6px;padding:6px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+#fbar .btn{padding:2px 8px;font-size:12px}#fbar select{padding:2px 24px 2px 8px;font-size:12px}
+#fbar .sep{width:1px;height:16px;background:var(--line);margin:0 4px}
 .sp{flex:1}
 .stat{color:var(--mut);font-size:12px;white-space:nowrap}.stat b{color:var(--fg);font-weight:600}
 .btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;white-space:nowrap}
@@ -73,6 +76,9 @@ main{flex:1;min-width:0;display:flex;flex-direction:column}
 .l.edit .k{color:var(--edit)}.l.bash .k{color:var(--warn)}
 .l.denied{background:color-mix(in srgb,var(--bad) 10%,transparent)}.l.denied .k,.l.denied .x{color:var(--bad)}
 .l.error .k,.l.error .x{color:var(--warn)}
+.log .l.sm{background:color-mix(in srgb,var(--warn) 20%,transparent)}
+.log .l.sc{background:color-mix(in srgb,var(--acc) 32%,transparent);box-shadow:inset 3px 0 var(--acc)}
+#ls{width:170px;padding:3px 8px;font-size:12px}
 .tile .l{padding:1px 12px;font:11.5px/1.5 "JetBrains Mono",ui-monospace,Menlo,monospace}.tile .l .ts{width:40px}
 .tile .l .x{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:2px solid transparent;background-clip:padding-box}
@@ -87,6 +93,7 @@ main{flex:1;min-width:0;display:flex;flex-direction:column}
  <button class="btn" id="livebtn">Live</button>
  <button class="btn" id="setbtn" title="Project folders">⚙</button>
 </header>
+<div id="fbar"></div>
 <div id="toasts"></div>
 <div class="wrap"><aside id="side"></aside><main id="main"></main></div>
 <script>
@@ -100,7 +107,6 @@ const ROLES=['dev','reviewer','docs','researcher'];
 const rc=r=>`--c:var(--${ROLES.includes(r)?r:'other'})`;
 const sdate=s=>new Date(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8),+s.slice(9,11),+s.slice(11,13),+s.slice(13,15));
 const hm=d=>d.toTimeString().slice(0,5);
-const ymd=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
 function dayLabel(d){const t=new Date();t.setHours(0,0,0,0);const x=new Date(d);x.setHours(0,0,0,0);
  const n=Math.round((t-x)/864e5);return n===0?'Today':n===1?'Yesterday':x.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}
 function dur(s){s=+s;if(!(s>=0))return'';return s<60?s+'s':s<3600?Math.floor(s/60)+'m '+(s%60)+'s':Math.floor(s/3600)+'h '+Math.floor(s%3600/60)+'m'}
@@ -114,37 +120,54 @@ function kind(x){if(x.startsWith('say: '))return['say','says',x.slice(5)];if(x.s
 function lineHTML(l){const m=l.match(/^\s*\[\s*(\d+)s\]\s?(.*)$/);
  if(!m)return`<div class="l"><span class="ts"></span><span class="k"></span><span class="x">${esc(l)}</span></div>`;
  const [k,t,x]=kind(m[2]);return`<div class="l ${k}" data-k="${k||'other'}"><span class="ts">${dur(m[1])}</span><span class="k">${esc(t)}</span><span class="x" title="${esc(x)}">${esc(x)}</span></div>`}
-function allRuns(){return S.projects.filter(p=>proj==='*'||p.id===proj).flatMap(p=>p.runs).sort((a,b)=>a.stamp<b.stamp?1:a.stamp>b.stamp?-1:0)}
-function liveRuns(){return allRuns().filter(r=>r.live)}
-function find(pid,id){const p=S.projects.find(x=>x.id===pid);return p&&p.runs.find(r=>r.id===id)}
+// the run filter (sent to the reader on every poll); `filt` above is the line-kind filter of a run's log
+const VGROUPS=[['pass','pass'],['fail','fail'],['none','no result'],['running','running']],DAYSEL=[['today','Today'],['7','7 days'],['30','30 days'],['all','All']];
+function loadRF(){let o={};try{o=JSON.parse(store.get('runfilter'))||{}}catch(e){}
+ const arr=a=>Array.isArray(a)?a.filter(x=>typeof x==='string'):[];
+ return{verdict:arr(o.verdict),role:arr(o.role),days:DAYSEL.some(d=>d[0]===o.days)?o.days:'all',q:typeof o.q==='string'?o.q:''}}
+let runFilter=loadRF();
+const saveRF=()=>store.set('runfilter',JSON.stringify(runFilter));
+function shown(){return S.projects.filter(p=>proj==='*'||p.id===proj)}
+function allRuns(){return shown().flatMap(p=>p.runs).sort((a,b)=>a.stamp<b.stamp?1:a.stamp>b.stamp?-1:0)}
+function liveRuns(){return shown().flatMap(p=>p.live_runs||[]).sort((a,b)=>a.stamp<b.stamp?1:a.stamp>b.stamp?-1:0)}
+function find(pid,id){const p=S.projects.find(x=>x.id===pid);return p&&(p.runs.find(r=>r.id===id)||(p.live_runs||[]).find(r=>r.id===id))}
+function renderBar(){
+ const roles=[...new Set(shown().flatMap(p=>p.roles||[]))].sort(),chip=(k,v,n)=>`<button class="btn ${runFilter[k].includes(v)?'on':''}" data-rf="${k}" data-v="${esc(v)}">${esc(n)}</button>`;
+ const h=VGROUPS.map(([v,n])=>chip('verdict',v,n)).join('')+'<span class="sep"></span>'+roles.map(r=>chip('role',r,r)).join('')+
+  `<select id="rfdays">${DAYSEL.map(([v,n])=>`<option value="${v}" ${runFilter.days===v?'selected':''}>${n}</option>`).join('')}</select><button class="btn" id="rfclear">Clear filters</button>`;
+ const bar=$('fbar');if(bar.dataset.h===h)return;bar.dataset.h=h;bar.innerHTML=h;
+ for(const b of bar.querySelectorAll('[data-rf]'))b.onclick=()=>{const a=runFilter[b.dataset.rf],i=a.indexOf(b.dataset.v);i<0?a.push(b.dataset.v):a.splice(i,1);changed()};
+ $('rfdays').onchange=e=>{runFilter.days=e.target.value;changed()};
+ $('rfclear').onclick=()=>{runFilter={verdict:[],role:[],days:'all',q:''};$('q').value='';changed()};
+}
+async function changed(){saveRF();renderBar();try{S=await API.state(runFilter);render()}catch(e){$('stats').textContent='reader error: '+e}}
 function renderTop(){
  const opts=[['*','All projects',S.projects.reduce((a,p)=>a+p.live,0)],...S.projects.map(p=>[p.id,p.id,p.live])];
  if(!opts.some(o=>o[0]===proj))proj='*';
  const h=opts.map(([v,n,l])=>`<option value="${esc(v)}" ${v===proj?'selected':''}>${esc(n)}${l?` · ${l} running`:''}</option>`).join('');
  if($('proj').dataset.h!==h){$('proj').innerHTML=h;$('proj').dataset.h=h}
- const rs=allRuns(),today=ymd(new Date()),td=rs.filter(r=>r.stamp.startsWith(today)&&!r.live);
- const pass=td.filter(r=>vk(r.verdict)==='ok').length,cost=td.reduce((a,r)=>a+(r.cost||0),0),lv=liveRuns().length;
- $('stats').innerHTML=`today <b>${td.length}</b> runs · <b class="ok">${pass}</b> pass · <b class="bad">${td.length-pass}</b> fail · list <b>$${cost.toFixed(2)}</b>`;
+ const tds=shown().map(p=>p.today||{}),n=tds.reduce((a,t)=>a+(t.runs||0),0),pass=tds.reduce((a,t)=>a+(t.pass||0),0),cost=tds.reduce((a,t)=>a+(t.cost||0),0),lv=liveRuns().length;
+ $('stats').innerHTML=`today <b>${n}</b> runs · <b class="ok">${pass}</b> pass · <b class="bad">${n-pass}</b> fail · list <b>$${cost.toFixed(2)}</b>`;
  const nf=S.projects.filter(p=>p.newer_format);$('fmtwarn').hidden=!nf.length;
  $('fmtwarn').textContent=nf.length?`⚠ kit format ${Math.max(...nf.map(p=>p.fmt))} is newer than this watcher (${S.known_format??1}): update hermes-dev-watch`:'';
  $('fmtwarn').title=nf.length?'Some fields may be missing or wrong in: '+nf.map(p=>p.id).join(', '):'';
  $('beacon').className=lv?'on':'';$('livebtn').textContent=`Live${lv?' · '+lv:''}`;$('livebtn').classList.toggle('on',view.k==='live');
 }
 function renderSide(){
- const q=$('q').value.trim().toLowerCase(),rs=allRuns().filter(r=>!q||[r.role,r.ticket,r.feature,r.verdict,r.project,r.model].join(' ').toLowerCase().includes(q));
- let h='',last='';
+ const rs=allRuns();
+ let h=shown().filter(p=>p.total>p.runs.length).map(p=>`<div class="day">${esc(p.id)}: showing ${p.runs.length} of ${p.total}</div>`).join(''),last='';
  for(const r of rs){const d=dayLabel(sdate(r.stamp));if(d!==last){h+=`<div class="day">${d}</div>`;last=d}
   const sel=view.k==='run'&&view.p===r.project&&view.id===r.id;
   h+=`<div class="run ${sel?'sel':''}" data-p="${esc(r.project)}" data-id="${r.id}"><div class="row">
    ${r.live?'<span class="pulse"></span>':''}<span class="role" style="${rc(r.role)}">${esc(r.role)}</span>
    ${proj==='*'?`<span class="proj">${esc(r.project)}</span>`:''}<span class="when">${hm(sdate(r.stamp))}${!r.live&&r.secs?' · '+dur(r.secs):''}</span></div>
    <div class="what" title="${esc(r.feature)}">${esc(title(r))}</div><div class="v">${vtxt(r)}</div></div>`}
- const sc=$('side').scrollTop;$('side').innerHTML=h||'<div class="empty" style="padding:30px">No runs</div>';$('side').scrollTop=sc;
+ const sc=$('side').scrollTop;$('side').innerHTML=rs.length?h:h+'<div class="empty" style="padding:30px">No runs</div>';$('side').scrollTop=sc;
  for(const d of document.querySelectorAll('.run'))d.onclick=()=>open(d.dataset.p,d.dataset.id);
 }
 function open(p,id){view={k:'run',p,id};logFor=null;render();pull()}
 function renderBoard(){
- const lv=liveRuns();logFor=null;
+ const lv=liveRuns();logFor=null;clearSearch();
  if(!lv.length){const r=allRuns()[0];
   $('main').innerHTML=`<div class="empty"><h2>No worker running</h2>${r?`Last run: <span class="role" style="${rc(r.role)}">${esc(r.role)}</span> ${esc(title(r))}<br>${vtxt(r)}<br><br><button class="btn" id="openlast">Open last run</button>`:'Start one from the planner.'}</div>`;
   if(r)$('openlast').onclick=()=>open(r.project,r.id);return}
@@ -155,48 +178,86 @@ function renderBoard(){
  for(const d of document.querySelectorAll('.tile'))d.onclick=()=>open(d.dataset.p,d.dataset.id);
 }
 function renderDetail(){
- const r=find(view.p,view.id);if(!r){view={k:'live'};return renderBoard()}
- const key=view.p+'/'+view.id;
+ const key=view.p+'/'+view.id;const op=S.projects.find(x=>x.id===view.p);let r=(op&&op.open&&op.open.id===view.id&&op.open)||find(view.p,view.id);
+ if(!r){view={k:'live'};return renderBoard()}
  const chips=[r.project,r.repo&&r.repo!==r.project?r.repo:'',r.feature,r.ticket&&r.ticket!=='-'?r.ticket:'',r.model,r.backend&&r.backend!=='claude'?r.backend:'',
   r.turns&&r.turns!=='-'?r.turns+' turns':'',!r.live&&r.secs?dur(r.secs):'',r.cost!=null?'$'+r.cost.toFixed(2)+' list':'',r.denials&&r.denials!=='0'?r.denials+' denied':''].filter(Boolean);
  const head=`<div class="t"><button class="btn" id="back" title="Back to live">←</button>${r.live?'<span class="pulse"></span>':''}<span class="role" style="${rc(r.role)}">${esc(r.role)}</span>${esc(title(r))}</div>
   <div class="v" style="margin-top:6px;font-size:13px;white-space:normal">${vtxt(r)}</div>
-  <div class="chips">${chips.map(c=>`<span class="chip">${esc(c)}</span>`).join('')}</div>
-  <div class="tools">${['all','say','edit','bash','denied','error'].map(f=>`<button class="btn ${filt===f?'on':''}" data-f="${f}">${f}</button>`).join('')}
-  <span class="sp"></span><label class="stat"><input type="checkbox" id="fol" ${follow?'checked':''}> follow</label></div>`;
- if(logFor!==key){$('main').innerHTML=`<div class="dh" id="dh"></div><div class="log" id="log"></div>`;logFor=key;off=0}
- $('dh').innerHTML=head;
+  <div class="chips">${chips.map(c=>`<span class="chip">${esc(c)}</span>`).join('')}</div>`;
+ // the tools row is built once per run so the search box keeps focus and text across the 1 s refresh
+ if(logFor!==key){clearSearch();$('main').innerHTML=`<div class="dh"><div id="dh"></div><div class="tools"><span id="fb"></span>
+  <input id="ls" placeholder="Search log…" aria-label="Search log"><span class="stat" id="lc"></span>
+  <span class="sp"></span><label class="stat"><input type="checkbox" id="fol"> follow</label></div></div><div class="log" id="log"></div>`;logFor=key;off=0;size=-1;
+  $('ls').onkeydown=searchKey;$('ls').oninput=()=>{if(!$('ls').value.trim())clearSearch()}}
+ $('dh').innerHTML=head;$('fol').checked=follow;
+ $('fb').innerHTML=['all','say','edit','bash','denied','error'].map(f=>`<button class="btn ${filt===f?'on':''}" data-f="${f}">${f}</button>`).join('');
  document.getElementById('fs').textContent=filt==='all'?'':`.log .l:not([data-k="${filt}"]){display:none}`;
  $('back').onclick=()=>{view={k:'live'};render()};
  $('fol').onchange=e=>follow=e.target.checked;
- for(const b of document.querySelectorAll('[data-f]'))b.onclick=()=>{filt=b.dataset.f;renderDetail()};
+ for(const b of document.querySelectorAll('[data-f]'))b.onclick=()=>{filt=b.dataset.f;renderDetail();keepCur()};
 }
-function render(){renderTop();renderSide();if(view.k==='run')renderDetail();else if(view.k==='settings')renderSettings();else renderBoard()}
+// --- log search: marks are CSS classes on the line elements; the reader numbers lines like the page does ---
+let sr=null,size=-1; // sr = {text,hits:null while loading|[line numbers],capped,cur:line number|-1}
+function clearSearch(){for(const e of document.querySelectorAll('#log .sm,#log .sc'))e.classList.remove('sm','sc');
+ sr=null;if($('lc'))$('lc').textContent='';if($('ls'))$('ls').value=''}
+function visHits(){const L=$('log');return sr&&sr.hits?sr.hits.filter(i=>L.children[i]&&L.children[i].offsetParent!==null):[]}
+function showCount(){if(!sr||!sr.hits)return;const v=visHits(),n=v.indexOf(sr.cur)+1;
+ $('lc').textContent=v.length?`${n} of ${sr.capped?'1000+':v.length}`:'no match'}
+function keepCur(){if(!sr||!sr.hits)return;const v=visHits();if(v.includes(sr.cur))return showCount();
+ goTo(v.find(i=>i>=sr.cur)??v[0]??-1)}
+function goTo(i){const L=$('log');for(const e of L.querySelectorAll('.sc'))e.classList.remove('sc');
+ sr.cur=i;if(i>=0){const e=L.children[i];e.classList.add('sc');e.scrollIntoView({block:'center'})}showCount()}
+function step(dir){const v=visHits();if(!v.length){goTo(-1);return}
+ const c=sr.cur;goTo(dir>0?(v.find(i=>i>c)??v[0]):([...v].reverse().find(i=>i<c)??v[v.length-1]))}
+async function loadAll(key){while(key===logFor&&(size<0||off<size)){
+ if(pulling){await new Promise(r=>setTimeout(r,50));continue}
+ const o=off;await pull();if(off===o&&size>=0)break}}
+async function searchKey(e){
+ if(e.key==='Escape'){clearSearch();return}
+ if(e.key!=='Enter')return;e.preventDefault();const text=$('ls').value.trim();if(!text)return;
+ if(sr&&sr.hits&&sr.text===text){step(e.shiftKey?-1:1);return}
+ if(sr&&!sr.hits)return;
+ const key=logFor;clearSearch();$('ls').value=text;const my=sr={text,hits:null,capped:false,cur:-1};
+ await loadAll(key);if(sr!==my||key!==logFor)return;
+ let d;try{d=await window.pywebview.api.search(view.p,view.id,text)}catch(x){d=null}
+ if(sr!==my||key!==logFor)return;
+ if(!d||d.error){$('lc').textContent='search failed';sr=null;return}
+ const L=$('log');my.hits=d.lines.filter(i=>L.children[i]);my.capped=!!d.capped;
+ for(const i of my.hits)L.children[i].classList.add('sm');
+ const top=L.getBoundingClientRect().top,v=visHits();
+ goTo(v.length?(v.find(i=>L.children[i].getBoundingClientRect().top>=top)??v[0]):-1)}
+function render(){renderTop();renderBar();renderSide();if(view.k==='run')renderDetail();else if(view.k==='settings')renderSettings();else renderBoard()}
 let pulling=false;
 async function pull(){
  if(view.k!=='run'||pulling)return;const L=$('log');if(!L)return;pulling=true;const key=logFor;
  try{const p=await API.progress(view.p,view.id,off);
   if(key!==logFor)return;
-  if(p.text){const first=off===0;L.insertAdjacentHTML('beforeend',p.text.split('\n').filter(Boolean).map(lineHTML).join(''));
-   if(follow||first)L.scrollTop=L.scrollHeight}
-  if(p.offset!==undefined)off=p.offset;
+  if(p.text){const first=off===0;L.insertAdjacentHTML('beforeend',p.text.split(/\r?\n/).filter(l=>l.trim()).map(lineHTML).join(''));
+   if((follow&&!sr)||first)L.scrollTop=L.scrollHeight}
+  if(p.offset!==undefined)off=p.offset;if(p.size!==undefined)size=p.size;
   if(!L.children.length&&!p.text)L.innerHTML='<div class="empty" style="padding:30px">No progress log for this run<br><small>runs/ stays on the machine that ran it</small></div>';
  }finally{pulling=false}}
 async function tick(){
- try{S=await API.state();notifyDone();if(view.k==='settings'&&$('setv'))renderTop();else render();await pull()}catch(e){$('stats').textContent='reader error: '+e}
+ try{S=await API.state(runFilter);await notifyDone();if(view.k==='settings'&&$('setv'))renderTop();else render();await pull()}catch(e){$('stats').textContent='reader error: '+e}
  setTimeout(tick,1000)}
 const st=document.createElement('style');st.id='fs';document.head.appendChild(st);
 $('proj').onchange=e=>{proj=e.target.value;store.set('proj',proj);if(view.k==='run'&&proj!=='*'&&view.p!==proj)view={k:'live'};render()};
-$('q').oninput=renderSide;
+$('q').value=runFilter.q;
+$('q').oninput=()=>{runFilter.q=$('q').value.trim();changed()};
 $('livebtn').onclick=()=>{view={k:'live'};render()};
 
 // --- desktop app: Python bridge (pywebview), settings, finished-run toasts ---
-const API={state:()=>window.pywebview.api.state(),progress:(p,r,o)=>window.pywebview.api.progress(p,r,o),
+const API={state:flt=>view.k==='run'?window.pywebview.api.state(flt,{project:view.p,run:view.id}):window.pywebview.api.state(flt),progress:(p,r,o)=>window.pywebview.api.progress(p,r,o),
  config:()=>window.pywebview.api.get_config(),save:c=>window.pywebview.api.save_config(c),pick:()=>window.pywebview.api.pick_folder()};
-function notifyDone(){
- const now=new Map(S.projects.flatMap(p=>p.runs.filter(r=>r.live).map(r=>[r.project+'\n'+r.id,r])));
- if(seenLive)for(const k of seenLive.keys())if(!now.has(k)){const [pp,id]=k.split('\n'),r=find(pp,id);if(r)toast(r)}
- seenLive=now}
+async function notifyDone(){
+ const now=new Map(S.projects.flatMap(p=>(p.live_runs||[]).map(r=>[r.project+'\n'+r.id,r])));
+ const gone=seenLive?[...seenLive.keys()].filter(k=>!now.has(k)):[];
+ seenLive=now;
+ if(!gone.length)return;
+ // the finished run may be cut by the run filter: read it from an unfiltered state
+ let all=S;if(gone.some(k=>{const [pp,id]=k.split('\n');return!find(pp,id)||find(pp,id).live}))try{all=await API.state({})}catch(e){}
+ for(const k of gone){const [pp,id]=k.split('\n'),p=all.projects.find(x=>x.id===pp),r=p&&p.runs.find(x=>x.id===id);if(r&&!r.live)toast(r)}}
 function toast(r){const ok=vk(r.verdict)==='ok',d=document.createElement('div');d.className='toast';d.style.cssText=`--c:var(--${ok?'ok':'bad'})`;
  d.innerHTML=`<div class="row"><span class="role" style="${rc(r.role)}">${esc(r.role)}</span><span class="proj">${esc(r.project)}</span></div>
   <div class="what">${esc(title(r))}</div><div class="v">${vtxt(r)}</div>`;
@@ -209,10 +270,10 @@ async function renderSettings(){
  $('main').innerHTML=`<div class="set" id="setv"><h2>Project folders</h2><p>Saved in <code>${esc(CFG.path)}</code>. Changes apply at once.</p>
   <h3>Roots</h3><p>Every <code>.scratch</code> with runs, up to 3 folders below.</p>${list('roots','roots')}<button class="btn" data-add="roots">+ Add root…</button>
   <h3>Single scratch folders</h3><p>A project's <code>.scratch</code> (or a workspace scratch folder) outside any root.</p>${list('scratch','folders')}<button class="btn" data-add="scratch">+ Add scratch folder…</button>
-  <h3>Found now</h3><div class="found">${S.projects.map(p=>`<div>${esc(p.id)} — ${p.runs.length} runs · <code>${esc(p.path)}</code></div>`).join('')||'none'}</div>
+  <h3>Found now</h3><div class="found">${S.projects.map(p=>`<div>${esc(p.id)} — ${p.run_count} runs · <code>${esc(p.path)}</code></div>`).join('')||'none'}</div>
   <br><button class="btn" id="setdone">Done</button></div>`;
- for(const b of document.querySelectorAll('[data-del]'))b.onclick=async()=>{const [k,i]=b.dataset.del.split(':');CFG[k].splice(+i,1);CFG=await API.save(CFG);S=await API.state();renderSettings()};
- for(const b of document.querySelectorAll('[data-add]'))b.onclick=async()=>{const f=await API.pick();if(f&&!CFG[b.dataset.add].includes(f)){CFG[b.dataset.add].push(f);CFG=await API.save(CFG);S=await API.state()}renderSettings()};
+ for(const b of document.querySelectorAll('[data-del]'))b.onclick=async()=>{const [k,i]=b.dataset.del.split(':');CFG[k].splice(+i,1);CFG=await API.save(CFG);S=await API.state(runFilter);renderSettings()};
+ for(const b of document.querySelectorAll('[data-add]'))b.onclick=async()=>{const f=await API.pick();if(f&&!CFG[b.dataset.add].includes(f)){CFG[b.dataset.add].push(f);CFG=await API.save(CFG);S=await API.state(runFilter)}renderSettings()};
  $('setdone').onclick=()=>{view={k:'live'};render()};
 }
 $('setbtn').onclick=()=>{view={k:'settings'};CFG=null;render()};
