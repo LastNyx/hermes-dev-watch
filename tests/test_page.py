@@ -47,6 +47,13 @@ class TestTerminalTheme(unittest.TestCase):
                   "$('ovrole')", "$('ovheat')", "p.stats"):
             self.assertIn(s, html)
 
+    def test_key_bar_and_shortcuts(self):
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        for s in ("<footer", "<kbd>j/↓</kbd>next run", "<kbd>k/↑</kbd>prev run", "<kbd>l</kbd>live",
+                  "<kbd>/</kbd>search", "<kbd>,</kbd>settings", "<kbd>esc</kbd>back",
+                  "document.addEventListener('keydown'", "footer kbd{"):
+            self.assertIn(s, html)
+
 
 if __name__ == "__main__":
     unittest.main()

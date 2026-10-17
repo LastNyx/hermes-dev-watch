@@ -108,6 +108,9 @@ legend{padding:0 8px;margin-left:4px;color:var(--fg)}legend::before{content:"$ "
 #ov .hm i{width:11px;height:11px;border-radius:1px;background:#1a1d23}#ov .hm i.l1{background:#4a3d1e}#ov .hm i.l2{background:#7a6128}#ov .hm i.l3{background:#b48a34}#ov .hm i.l4{background:#e8b44c}
 #ov .hm span{white-space:nowrap;overflow:visible}#ov .hl{display:flex;align-items:center;gap:3px;margin-top:6px;font-size:9px;color:var(--dim)}
 #ov .hl i{display:inline-block;width:11px;height:11px;border-radius:1px;background:#1a1d23}#ov .hl i.l1{background:#4a3d1e}#ov .hl i.l2{background:#7a6128}#ov .hl i.l3{background:#b48a34}#ov .hl i.l4{background:#e8b44c}
+footer{flex:none;display:flex;justify-content:center;gap:22px;padding:8px 0 12px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--line);white-space:nowrap}
+footer kbd{font:inherit;background:#1a1d23;color:var(--fg);border-radius:3px;padding:1px 6px;margin-right:6px}
+footer kbd::before{content:"["}footer kbd::after{content:"]"}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:var(--panel)}
 ::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:2px solid var(--panel);background-clip:padding-box}
 </style></head><body>
@@ -139,6 +142,7 @@ legend{padding:0 8px;margin-left:4px;color:var(--fg)}legend::before{content:"$ "
  <div class="col" id="right"><fieldset class="grow"><legend>stats <span class="a">--overview</span></legend>
   <div id="ov"><section id="ovtoday"></section><section id="ovrole"></section><section id="ovheat"></section></div></fieldset></div>
 </div>
+<footer><span><kbd>j/↓</kbd>next run</span><span><kbd>k/↑</kbd>prev run</span><span><kbd>l</kbd>live</span><span><kbd>/</kbd>search</span><span><kbd>,</kbd>settings</span><span><kbd>esc</kbd>back</span></footer>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -321,6 +325,21 @@ $('proj').onchange=e=>{proj=e.target.value;store.set('proj',proj);if(view.k==='r
 $('q').value=runFilter.q;
 $('q').oninput=()=>{runFilter.q=$('q').value.trim();changed()};
 $('livebtn').onclick=()=>{view={k:'live'};render()};
+// --- keyboard: j/k step through the run list as shown, l live, / search, , settings, Esc leave a box or go back ---
+document.addEventListener('keydown',e=>{
+ if(e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return;
+ const a=document.activeElement,typing=a&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName),k=e.key;
+ if(typing){if(k==='Escape'){a.blur();e.preventDefault()}return}
+ if(k==='j'||k==='k'||k==='ArrowDown'||k==='ArrowUp'){
+  const rs=allRuns();e.preventDefault();if(!rs.length)return;
+  const i=view.k==='run'?rs.findIndex(r=>r.project===view.p&&r.id===view.id):-1,d=k==='j'||k==='ArrowDown'?1:-1;
+  const n=i<0?0:Math.max(0,Math.min(rs.length-1,i+d));
+  open(rs[n].project,rs[n].id);const s=document.querySelector('#side .run.sel');if(s)s.scrollIntoView({block:'nearest'})}
+ else if(k==='l'){e.preventDefault();$('livebtn').onclick()}
+ else if(k===','){e.preventDefault();$('setbtn').onclick()}
+ else if(k==='/'){e.preventDefault();const f=view.k==='run'&&$('ls')?$('ls'):$('q');f.focus();f.select()}
+ else if(k==='Escape'&&view.k!=='live'){e.preventDefault();$('livebtn').onclick()}
+});
 
 // --- desktop app: Python bridge (pywebview), settings, finished-run toasts ---
 const API={state:flt=>view.k==='run'?window.pywebview.api.state(flt,{project:view.p,run:view.id}):window.pywebview.api.state(flt),progress:(p,r,o)=>window.pywebview.api.progress(p,r,o),
