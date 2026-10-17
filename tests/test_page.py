@@ -40,6 +40,13 @@ class TestTerminalTheme(unittest.TestCase):
         self.assertIn('class="brand" title=', html)
         self.assertIn("v0.4.0: git pull".replace("v0.4.0", "${esc(r.latest)}"), html)
 
+    def test_stats_column_has_by_role_and_heatmap(self):
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        for s in ("▤</span>by role", "pass rate per role, last 30 days", "no runs in 30 days", "▦</span>activity",
+                  "runs per day, last 20 weeks", "#1a1d23", "#4a3d1e", "#7a6128", "#b48a34", "#e8b44c",
+                  "$('ovrole')", "$('ovheat')", "p.stats"):
+            self.assertIn(s, html)
+
 
 if __name__ == "__main__":
     unittest.main()

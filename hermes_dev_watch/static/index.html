@@ -104,6 +104,10 @@ legend{padding:0 8px;margin-left:4px;color:var(--fg)}legend::before{content:"$ "
 .tile .l .x{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #ov{flex:1;overflow:auto}#ov h4{margin:12px 0 0;font-weight:700;font-size:13.5px}#ov section:first-child h4{margin-top:0}
 #ov h4 .ic{display:inline-block;width:18px;color:var(--amber)}#ov section>div{padding-left:18px}
+#ov .rl{display:inline-block}#ov .hm{display:grid;grid-template-columns:14px repeat(20,11px);grid-auto-rows:11px;gap:3px;margin-top:6px;font-size:9px;line-height:11px;color:var(--dim)}
+#ov .hm i{width:11px;height:11px;border-radius:1px;background:#1a1d23}#ov .hm i.l1{background:#4a3d1e}#ov .hm i.l2{background:#7a6128}#ov .hm i.l3{background:#b48a34}#ov .hm i.l4{background:#e8b44c}
+#ov .hm span{white-space:nowrap;overflow:visible}#ov .hl{display:flex;align-items:center;gap:3px;margin-top:6px;font-size:9px;color:var(--dim)}
+#ov .hl i{display:inline-block;width:11px;height:11px;border-radius:1px;background:#1a1d23}#ov .hl i.l1{background:#4a3d1e}#ov .hl i.l2{background:#7a6128}#ov .hl i.l3{background:#b48a34}#ov .hl i.l4{background:#e8b44c}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:var(--panel)}
 ::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:2px solid var(--panel);background-clip:padding-box}
 </style></head><body>
@@ -133,7 +137,7 @@ legend{padding:0 8px;margin-left:4px;color:var(--fg)}legend::before{content:"$ "
  </div>
  <div class="col" id="mid"><fieldset class="grow"><legend id="mleg">live</legend><div id="main"></div></fieldset></div>
  <div class="col" id="right"><fieldset class="grow"><legend>stats <span class="a">--overview</span></legend>
-  <div id="ov"><section id="ovtoday"></section></div></fieldset></div>
+  <div id="ov"><section id="ovtoday"></section><section id="ovrole"></section><section id="ovheat"></section></div></fieldset></div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -189,6 +193,7 @@ function renderBar(){
 }
 async function changed(){saveRF();renderBar();try{S=await API.state(runFilter);render()}catch(e){$('stats').textContent='reader error: '+e}}
 const blocks=f=>`<span class="bar">${Array.from({length:12},(_,i)=>`<i class="${i<f?'f':''}"></i>`).join('')}</span>`;
+const blocks10=f=>`<span class="bar">${Array.from({length:10},(_,i)=>`<i class="${i<f?'f':''}"></i>`).join('')}</span>`;
 function renderTop(){
  const opts=[['*','All projects',S.projects.reduce((a,p)=>a+p.live,0)],...S.projects.map(p=>[p.id,p.id,p.live])];
  if(!opts.some(o=>o[0]===proj))proj='*';
@@ -203,6 +208,20 @@ function renderTop(){
  $('stbar').innerHTML=`${blocks(Math.round(pct*12/100))}${pct}% <span class="dm">[${pass}/${n} pass today]</span>`;
  $('ovtoday').innerHTML=`<h4><span class="ic">◉</span>today</h4><div class="c">runs across watched projects</div>
   <div>runs: <span class="am">${n}</span></div><div>pass: <span class="am">${pass}</span></div><div>fail: <span class="am">${n-pass}</span></div><div>list cost: <span class="am">$${cost.toFixed(2)}</span></div>`;
+ const sts=shown().map(p=>p.stats||{}),br={},bd={};
+ for(const s of sts){for(const[k,v]of Object.entries(s.by_role||{})){const o=br[k]||(br[k]={runs:0,pass:0});o.runs+=v.runs||0;o.pass+=v.pass||0}
+  for(const[k,v]of Object.entries(s.by_day||{}))bd[k]=(bd[k]||0)+v}
+ const rs=Object.entries(br).filter(([,v])=>v.runs).sort((a,b)=>b[1].runs-a[1].runs),rw=Math.max(0,...rs.map(([k])=>k.length));
+ $('ovrole').innerHTML=`<h4><span class="ic">▤</span>by role</h4><div class="c">pass rate per role, last 30 days</div>`+(rs.length?rs.map(([k,v])=>{const pc=Math.round(v.pass/v.runs*100);
+  return `<div><span class="role rl" style="${rc(k)};width:${rw}ch">${esc(k)}</span> ${blocks10(Math.round(pc/10))}${pc}% <span class="dm">[${v.pass}/${v.runs}]</span></div>`}).join(''):'<div class="c">no runs in 30 days</div>');
+ const T=new Date(),t0=new Date(T.getFullYear(),T.getMonth(),T.getDate()),dw=(t0.getDay()+6)%7,p2=x=>String(x).padStart(2,'0'),MON=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+ let hm='',pm=-1;
+ for(let w=0;w<20;w++){const m=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-dw+(w-19)*7).getMonth();if(m!==pm)hm+=`<span style="grid-row:1;grid-column:${w+2}">${MON[m]}</span>`;pm=m}
+ for(const[i,l]of[[0,'m'],[2,'w'],[4,'f']])hm+=`<span style="grid-row:${i+2};grid-column:1">${l}</span>`;
+ for(let w=0;w<20;w++)for(let d=0;d<7;d++){const dt=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-dw+(w-19)*7+d);if(dt>t0)continue;
+  const n=bd[`${dt.getFullYear()}${p2(dt.getMonth()+1)}${p2(dt.getDate())}`]||0;
+  hm+=`<i class="${n?'l'+(n>=7?4:n>=4?3:n>=2?2:1):''}" style="grid-row:${d+2};grid-column:${w+2}" title="${dt.getFullYear()}-${p2(dt.getMonth()+1)}-${p2(dt.getDate())}: ${n} run${n===1?'':'s'}"></i>`}
+ $('ovheat').innerHTML=`<h4><span class="ic">▦</span>activity</h4><div class="c">runs per day, last 20 weeks</div><div class="hm">${hm}</div><div class="hl"><span>// less</span><i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>more</span></div>`;
  const nf=S.projects.filter(p=>p.newer_format);$('fmtwarn').hidden=!nf.length;
  $('fmtwarn').textContent=nf.length?`⚠ kit format ${Math.max(...nf.map(p=>p.fmt))} is newer than this watcher (${S.known_format??1}): update hermes-dev-watch`:'';
  $('fmtwarn').title=nf.length?'Some fields may be missing or wrong in: '+nf.map(p=>p.id).join(', '):'';
