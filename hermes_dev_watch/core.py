@@ -186,6 +186,26 @@ def filter_runs(runs, flt, now):
     return out
 
 
+def run_stats(runs, now):
+    """Pass rates by role (last 30 days) and runs per day (last 140 days); ended worker runs only, never raises."""
+    first30 = (now.date() - datetime.timedelta(days=29)).strftime("%Y%m%d")
+    first140 = (now.date() - datetime.timedelta(days=139)).strftime("%Y%m%d")
+    last = now.strftime("%Y%m%d")
+    by_role, by_day = {}, {}
+    for r in runs:
+        day = str(r.get("stamp") or "")[:8]
+        if r.get("live") or r.get("role") == "planner" or not (day.isdigit() and len(day) == 8):
+            continue
+        if not first140 <= day <= last:
+            continue
+        by_day[day] = by_day.get(day, 0) + 1
+        if day >= first30:
+            s = by_role.setdefault(r.get("role"), {"runs": 0, "pass": 0})
+            s["runs"] += 1
+            s["pass"] += verdict_group(r) == "pass"
+    return {"by_role": by_role, "by_day": by_day, "days": 140}
+
+
 def project_state(pid, scratch, flt=None, now=None, open_run=None):
     now = now or datetime.datetime.now()
     runs_dir = scratch / "runs"
@@ -214,6 +234,7 @@ def project_state(pid, scratch, flt=None, now=None, open_run=None):
             "today": {"runs": len(done), "pass": sum(verdict_group(r) == "pass" for r in done),
                       "cost": sum(r["cost"] for r in done if r.get("cost") is not None),
                       "planner": len(ended) - len(done)},
+            "stats": run_stats(runs, now),
             "live": len(live), "fmt": seen, "newer_format": seen > KNOWN_FORMAT}
 
 
