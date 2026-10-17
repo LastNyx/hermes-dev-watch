@@ -105,9 +105,9 @@ legend{padding:0 8px;margin-left:4px;color:var(--fg)}legend::before{content:"$ "
 #ov{flex:1;overflow:auto}#ov h4{margin:12px 0 0;font-weight:700;font-size:13.5px}#ov section:first-child h4{margin-top:0}
 #ov h4 .ic{display:inline-block;width:18px;color:var(--amber)}#ov section>div{padding-left:18px}
 #ov .rl{display:inline-block}#ov .hm{display:grid;grid-template-columns:14px repeat(20,11px);grid-auto-rows:11px;gap:3px;margin-top:6px;font-size:9px;line-height:11px;color:var(--dim)}
-#ov .hm i{width:11px;height:11px;border-radius:1px;background:#1a1d23}#ov .hm i.l1{background:#4a3d1e}#ov .hm i.l2{background:#7a6128}#ov .hm i.l3{background:#b48a34}#ov .hm i.l4{background:#e8b44c}
+#ov .hm i,#ov .hl i{width:11px;height:11px;border-radius:1px;background:#1a1d23}#ov :is(.hm,.hl) i.l1{background:#4a3d1e}#ov :is(.hm,.hl) i.l2{background:#7a6128}#ov :is(.hm,.hl) i.l3{background:#b48a34}#ov :is(.hm,.hl) i.l4{background:#e8b44c}
 #ov .hm span{white-space:nowrap;overflow:visible}#ov .hl{display:flex;align-items:center;gap:3px;margin-top:6px;font-size:9px;color:var(--dim)}
-#ov .hl i{display:inline-block;width:11px;height:11px;border-radius:1px;background:#1a1d23}#ov .hl i.l1{background:#4a3d1e}#ov .hl i.l2{background:#7a6128}#ov .hl i.l3{background:#b48a34}#ov .hl i.l4{background:#e8b44c}
+#ov .hl i{display:inline-block}
 footer{flex:none;display:flex;justify-content:center;gap:22px;padding:8px 0 12px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--line);white-space:nowrap}
 footer kbd{font:inherit;background:#1a1d23;color:var(--fg);border-radius:3px;padding:1px 6px;margin-right:6px}
 footer kbd::before{content:"["}footer kbd::after{content:"]"}
@@ -196,8 +196,7 @@ function renderBar(){
  $('rfclear').onclick=()=>{runFilter={verdict:[],role:[],days:'all',q:''};$('q').value='';changed()};
 }
 async function changed(){saveRF();renderBar();try{S=await API.state(runFilter);render()}catch(e){$('stats').textContent='reader error: '+e}}
-const blocks=f=>`<span class="bar">${Array.from({length:12},(_,i)=>`<i class="${i<f?'f':''}"></i>`).join('')}</span>`;
-const blocks10=f=>`<span class="bar">${Array.from({length:10},(_,i)=>`<i class="${i<f?'f':''}"></i>`).join('')}</span>`;
+const blocks=(f,n=12)=>`<span class="bar">${Array.from({length:n},(_,i)=>`<i class="${i<f?'f':''}"></i>`).join('')}</span>`;
 function renderTop(){
  const opts=[['*','All projects',S.projects.reduce((a,p)=>a+p.live,0)],...S.projects.map(p=>[p.id,p.id,p.live])];
  if(!opts.some(o=>o[0]===proj))proj='*';
@@ -217,7 +216,7 @@ function renderTop(){
   for(const[k,v]of Object.entries(s.by_day||{}))bd[k]=(bd[k]||0)+v}
  const rs=Object.entries(br).filter(([,v])=>v.runs).sort((a,b)=>b[1].runs-a[1].runs),rw=Math.max(0,...rs.map(([k])=>k.length));
  $('ovrole').innerHTML=`<h4><span class="ic">▤</span>by role</h4><div class="c">pass rate per role, last 30 days</div>`+(rs.length?rs.map(([k,v])=>{const pc=Math.round(v.pass/v.runs*100);
-  return `<div><span class="role rl" style="${rc(k)};width:${rw}ch">${esc(k)}</span> ${blocks10(Math.round(pc/10))}${pc}% <span class="dm">[${v.pass}/${v.runs}]</span></div>`}).join(''):'<div class="c">no runs in 30 days</div>');
+  return `<div><span class="role rl" style="${rc(k)};width:${rw}ch">${esc(k)}</span> ${blocks(Math.round(pc/10),10)}${pc}% <span class="dm">[${v.pass}/${v.runs}]</span></div>`}).join(''):'<div class="c">no runs in 30 days</div>');
  const T=new Date(),t0=new Date(T.getFullYear(),T.getMonth(),T.getDate()),dw=(t0.getDay()+6)%7,p2=x=>String(x).padStart(2,'0'),MON=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
  let hm='',pm=-1;
  for(let w=0;w<20;w++){const m=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-dw+(w-19)*7).getMonth();if(m!==pm)hm+=`<span style="grid-row:1;grid-column:${w+2}">${MON[m]}</span>`;pm=m}
