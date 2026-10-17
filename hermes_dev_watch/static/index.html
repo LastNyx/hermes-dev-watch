@@ -30,7 +30,7 @@ input[type=checkbox]::before{content:"[ ]";color:var(--dim)}input[type=checkbox]
 .btn::before{content:"["}.btn::after{content:"]"}
 .btn:hover{color:var(--fg)}.btn.on{color:var(--amber);font-weight:700}
 #upd{color:var(--amber)}#upd[hidden]{display:none}#upd .btn{color:var(--amber)}
-#ghbtn{display:flex;align-items:center;color:var(--mut)}#ghbtn::before,#ghbtn::after{content:none}
+#ghbtn{display:flex;align-items:center;align-self:center;color:var(--mut)}#ghbtn::before,#ghbtn::after{content:none}
 /* the top bar never overflows: the picker and today's numbers shrink, the update banner and GitHub button never do */
 #ghbtn{flex-shrink:0}#upd{flex-shrink:0}.brand,.nav{flex-shrink:0}
 .pj{min-width:90px;display:flex;overflow:hidden}
@@ -90,7 +90,7 @@ legend{padding:0 8px;margin-left:4px;color:var(--fg)}legend::before{content:"$ "
 .log{flex:1;overflow:auto;padding:6px 0 10px;font-size:12.5px;line-height:1.65}
 .l{display:flex;gap:12px;padding:0 4px}
 .log .l:hover{background:var(--sel)}
-.l .ts{color:var(--dim);width:46px;flex:none;text-align:right}
+.l .ts{color:var(--dim);width:56px;flex:none;text-align:right;white-space:nowrap}
 .l .k{width:64px;flex:none;color:var(--mut);overflow:hidden;text-overflow:ellipsis}
 .l .x{white-space:pre-wrap;word-break:break-word;min-width:0}
 .l.say .k,.l.say .x{color:var(--purple)}
@@ -100,7 +100,7 @@ legend{padding:0 8px;margin-left:4px;color:var(--fg)}legend::before{content:"$ "
 .log .l.sm{background:color-mix(in srgb,var(--amber) 22%,transparent)}
 .log .l.sc{background:color-mix(in srgb,var(--amber) 42%,transparent);box-shadow:inset 3px 0 var(--amber)}
 #ls{flex:1;min-width:120px;max-width:260px;border-bottom:1px solid var(--line);padding:0}#ls::placeholder{color:var(--dim)}#ls:focus{border-bottom-color:var(--amber)}
-.tile .l{padding:0 12px;font-size:11.5px;line-height:1.5}.tile .l .ts{width:40px}
+.tile .l{padding:0 12px;font-size:11.5px;line-height:1.5}.tile .l .ts{width:56px}
 .tile .l .x{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #ov{flex:1;overflow:auto}#ov h4{margin:12px 0 0;font-weight:700;font-size:13.5px}#ov section:first-child h4{margin-top:0}
 #ov h4 .ic{display:inline-block;width:18px;color:var(--amber)}#ov section>div{padding-left:18px}

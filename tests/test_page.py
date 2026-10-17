@@ -26,6 +26,12 @@ class TestTerminalTheme(unittest.TestCase):
         self.assertIn("@media (max-width:1299px){#upd .long{display:none}#upd .short{display:inline}#stats .lp{display:none}", html)
         self.assertIn("$('stats').title=", html)
 
+    def test_log_times_never_wrap_and_github_icon_centered(self):
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        self.assertIn(".l .ts{color:var(--dim);width:56px;flex:none;text-align:right;white-space:nowrap}", html)
+        self.assertIn(".tile .l .ts{width:56px}", html)
+        self.assertIn("#ghbtn{display:flex;align-items:center;align-self:center;", html)
+
     def test_project_picker_keeps_a_floor(self):
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         self.assertIn(".pj{min-width:90px;", html)
