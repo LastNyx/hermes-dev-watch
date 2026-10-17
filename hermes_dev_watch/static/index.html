@@ -157,8 +157,8 @@ function vtxt(r){if(r.live)return'<b class="ok">running</b> · '+dur(Math.round(
 function sub(r){if(r.live)return'running · '+dur(Math.round((Date.now()-sdate(r.stamp))/1e3));
  return[r.verdict||'no result',r.secs?dur(r.secs):''].filter(Boolean).join(' · ')}
 // marker of a run: [~] live, [i] planner line, [✓] pass, [✗] fail, [?] no result
-function marker(r){const v=r.verdict||'';
- return r.live?['~','am']:r.role==='planner'?['i','mu']:/^PASS/.test(v)?['✓','gr']:/^(FAIL|ERROR)/.test(v)?['✗','rd']:['?','dm']}
+function marker(r){
+ return r.live?['~','am']:r.role==='planner'?['i','mu']:{ok:['✓','gr'],bad:['✗','rd'],warn:['?','dm']}[vk(r.verdict)]}
 function title(r){return r.ticket&&r.ticket!=='-'?r.ticket.replace(/\.md$/,''):(r.feature||'—')}
 function kind(x){if(x.startsWith('say: '))return['say','says',x.slice(5)];if(x.startsWith('DENIED '))return['denied','DENIED',x.slice(7)];
  if(x.startsWith('exit!=0 '))return['error','failed',x.slice(8)];const sp=x.indexOf(' '),t=sp<0?x:x.slice(0,sp),rest=sp<0?'':x.slice(sp+1);
