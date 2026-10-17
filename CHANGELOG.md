@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.5 - 2026-10-17
+
+- Tests: hermes-dev-team 0.14.0 writes no planner progress log (planner lines are `action=status|decide`, result path
+  `-`), so `KitSamples.test_planner_line` expects an empty progress text. `core.py` unchanged.
+
 ## 0.3.4 - 2026-10-16
 
 - Planner lines (hermes-dev-team 0.13.7: role `planner`, one line per planner check or note) show as runs with a

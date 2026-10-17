@@ -210,7 +210,7 @@ class KitSamples(unittest.TestCase):
                           pl.get("ticket")),
                          ("planner", "planner", "FAIL verify 01: the sum is blank", "-", None, "01-mul.md"))
         text = (core.progress(self.fx, "20261016-121500-planner", 0) or {}).get("text", "")
-        self.assertIn("say: loaded the page", text)
+        self.assertEqual(text, "")              # kit 0.14.0: planner lines have no progress log
 
     def test_dev_run_fields(self):
         dev = self.by.get("20261016-120000-dev", {})
