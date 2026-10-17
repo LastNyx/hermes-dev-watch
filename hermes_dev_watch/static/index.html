@@ -31,6 +31,13 @@ input[type=checkbox]::before{content:"[ ]";color:var(--dim)}input[type=checkbox]
 .btn:hover{color:var(--fg)}.btn.on{color:var(--amber);font-weight:700}
 #upd{color:var(--amber)}#upd[hidden]{display:none}#upd .btn{color:var(--amber)}
 #ghbtn{display:flex;align-items:center;color:var(--mut)}#ghbtn::before,#ghbtn::after{content:none}
+/* the top bar never overflows: the picker and today's numbers shrink, the update banner and GitHub button never do */
+#ghbtn{flex-shrink:0}#upd{flex-shrink:0}.brand,.nav{flex-shrink:0}
+.pj{min-width:0;display:flex;overflow:hidden}
+#proj{max-width:240px;text-overflow:ellipsis;min-width:0;white-space:nowrap}
+#stats{min-width:0;overflow:hidden;text-overflow:ellipsis}#stats .ss{display:none}
+@media (max-width:1399px){#stats .sl{display:none}#stats .ss{display:inline}}
+@media (max-width:1299px){#stats .lp{display:none}header{gap:16px}}
 .cols{flex:1;display:grid;grid-template-columns:330px 1fr 380px;gap:22px;padding:22px;min-height:0}
 .col{display:flex;flex-direction:column;gap:22px;min-height:0;min-width:0}
 @media (max-width:1199px){.cols{grid-template-columns:330px 1fr}#right{display:none}}
@@ -188,7 +195,8 @@ function renderTop(){
  if($('proj').dataset.h!==h){$('proj').innerHTML=h;$('proj').dataset.h=h}
  const tds=shown().map(p=>p.today||{}),n=tds.reduce((a,t)=>a+(t.runs||0),0),pass=tds.reduce((a,t)=>a+(t.pass||0),0),cost=tds.reduce((a,t)=>a+(t.cost||0),0),pl=tds.reduce((a,t)=>a+(t.planner||0),0),lv=liveRuns();
  $('ver').textContent=S.version?`[${S.version}]`:'';
- $('stats').innerHTML=`today <b>${n}</b> runs · <b class="ok">${pass}</b> pass · <b class="bad">${n-pass}</b> fail · list <b>$${cost.toFixed(2)}</b>`+(pl?` · <b>${pl}</b> planner`:'');
+ $('stats').innerHTML=`<span class="sl">today </span><b>${n}</b> runs · <b class="ok">${pass}</b><span class="sl"> pass</span><span class="ss"> ✓</span> · <b class="bad">${n-pass}</b><span class="sl"> fail</span><span class="ss"> ✗</span><span class="lp"> · <span class="sl">list </span><b>$${cost.toFixed(2)}</b></span>`+(pl?` · <b>${pl}</b> planner`:'');
+ $('stats').title=`today ${n} runs · ${pass} pass · ${n-pass} fail · list $${cost.toFixed(2)}`+(pl?` · ${pl} planner`:'');
  const pct=n?Math.round(pass/n*100):0;
  $('stv').innerHTML=lv.length?`<span class="gr">${lv.length} running</span>`+lv.map(r=>`<div class="what"><span class="role" style="${rc(r.role)}">${esc(r.role)}</span> <span class="bl">${esc(title(r))}</span></div>`).join(''):'<span class="c">no worker running</span>';
  $('stbar').innerHTML=`${blocks(Math.round(pct*12/100))}${pct}% <span class="dm">[${pass}/${n} pass today]</span>`;
