@@ -35,9 +35,10 @@ input[type=checkbox]::before{content:"[ ]";color:var(--dim)}input[type=checkbox]
 #ghbtn{flex-shrink:0}#upd{flex-shrink:0}.brand,.nav{flex-shrink:0}
 .pj{min-width:0;display:flex;overflow:hidden}
 #proj{max-width:240px;text-overflow:ellipsis;min-width:0;white-space:nowrap}
-#stats{min-width:0;overflow:hidden;text-overflow:ellipsis}#stats .ss{display:none}
+#stats{flex-shrink:0}#stats .ss{display:none}#upd .short{display:none}
 @media (max-width:1399px){#stats .sl{display:none}#stats .ss{display:inline}}
-@media (max-width:1299px){#stats .lp{display:none}header{gap:16px}}
+@media (max-width:1299px){#upd .long{display:none}#upd .short{display:inline}#stats .lp{display:none}header{gap:16px}}
+@media (max-width:1099px){.brand .full{display:none}.pj .pl{display:none}}
 .cols{flex:1;display:grid;grid-template-columns:330px 1fr 380px;gap:22px;padding:22px;min-height:0}
 .col{display:flex;flex-direction:column;gap:22px;min-height:0;min-width:0}
 @media (max-width:1199px){.cols{grid-template-columns:330px 1fr}#right{display:none}}
@@ -107,10 +108,10 @@ legend{padding:0 8px;margin-left:4px;color:var(--fg)}legend::before{content:"$ "
 ::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:2px solid var(--panel);background-clip:padding-box}
 </style></head><body>
 <header>
- <span class="brand">[<b>w</b>] <b>hermes.DevWatch</b> <span class="d" id="ver"></span></span>
+ <span class="brand" title="hermes.DevWatch">[<b>w</b>]<span class="full"> <b>hermes.DevWatch</b> <span class="d" id="ver"></span></span></span>
  <button class="nav" id="livebtn">live</button>
  <button class="nav" id="setbtn" title="Project folders">settings</button>
- <label class="pj">project: <select id="proj"></select></label>
+ <label class="pj"><span class="pl">project:&nbsp;</span><select id="proj"></select></label>
  <span class="sp"></span>
  <span id="upd" hidden></span>
  <span class="stat warn" id="fmtwarn" hidden></span>
@@ -194,7 +195,7 @@ function renderTop(){
  const h=opts.map(([v,n,l])=>`<option value="${esc(v)}" ${v===proj?'selected':''}>${esc(n)}${l?` · ${l} running`:''}</option>`).join('');
  if($('proj').dataset.h!==h){$('proj').innerHTML=h;$('proj').dataset.h=h}
  const tds=shown().map(p=>p.today||{}),n=tds.reduce((a,t)=>a+(t.runs||0),0),pass=tds.reduce((a,t)=>a+(t.pass||0),0),cost=tds.reduce((a,t)=>a+(t.cost||0),0),pl=tds.reduce((a,t)=>a+(t.planner||0),0),lv=liveRuns();
- $('ver').textContent=S.version?`[${S.version}]`:'';
+ $('ver').textContent=S.version?`[${S.version}]`:'';document.querySelector('.brand').title='hermes.DevWatch'+(S.version?` ${S.version}`:'');
  $('stats').innerHTML=`<span class="sl">today </span><b>${n}</b> runs · <b class="ok">${pass}</b><span class="sl"> pass</span><span class="ss"> ✓</span> · <b class="bad">${n-pass}</b><span class="sl"> fail</span><span class="ss"> ✗</span><span class="lp"> · <span class="sl">list </span><b>$${cost.toFixed(2)}</b></span>`+(pl?` · <b>${pl}</b> planner`:'');
  $('stats').title=`today ${n} runs · ${pass} pass · ${n-pass} fail · list $${cost.toFixed(2)}`+(pl?` · ${pl} planner`:'');
  const pct=n?Math.round(pass/n*100):0;
@@ -341,9 +342,9 @@ $('setbtn').onclick=()=>{view={k:'settings'};CFG=null;render()};
 $('ghbtn').onclick=()=>window.pywebview.api.open_repo();
 // --- self-update (docs/open/auto-update.md): a banner with the version tag; nothing changes until update is clicked ---
 async function checkUpdate(auto){let r;try{r=await window.pywebview.api.check_update(auto)}catch(e){r={error:String(e)}}
- const u=$('upd');if(r.newer){u.hidden=false;u.innerHTML=r.source?`${esc(r.latest)} available - running from source: git pull`
-  :`${esc(r.latest)} available <button class="btn" id="updbtn">update</button>`;
-  if(!r.source)$('updbtn').onclick=async()=>{$('updbtn').disabled=true;u.firstChild.textContent=`installing ${r.latest}… `;
+ const u=$('upd');if(r.newer){u.hidden=false;u.innerHTML=r.source?`<span class="long">${esc(r.latest)} available - running from source: git pull</span><span class="short">${esc(r.latest)}: git pull</span>`
+  :`<span class="long">${esc(r.latest)} available </span><button class="btn" id="updbtn"><span class="long">update</span><span class="short">update ${esc(r.latest)}</span></button>`;
+  if(!r.source)$('updbtn').onclick=async()=>{$('updbtn').disabled=true;u.textContent=`installing ${r.latest}… `;
    let a;try{a=await window.pywebview.api.apply_update()}catch(e){a={error:String(e)}}
    if(a.error){u.innerHTML=`<span class="warn">update failed: ${esc(a.error)}</span>`}else u.textContent=`restarting as ${a.installed}…`}}
  return r}

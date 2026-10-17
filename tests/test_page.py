@@ -23,8 +23,17 @@ class TestTerminalTheme(unittest.TestCase):
         self.assertIn("#ghbtn{flex-shrink:0", html)
         self.assertIn("#upd{flex-shrink:0", html)
         self.assertIn("@media (max-width:1399px){#stats .sl{display:none}", html)
-        self.assertIn("@media (max-width:1299px){#stats .lp{display:none}", html)
+        self.assertIn("@media (max-width:1299px){#upd .long{display:none}#upd .short{display:inline}#stats .lp{display:none}", html)
         self.assertIn("$('stats').title=", html)
+
+    def test_header_is_one_line_with_short_forms(self):
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn("header{display:flex;flex-wrap", html)
+        self.assertIn("#stats{flex-shrink:0", html)
+        self.assertIn("@media (max-width:1299px){#upd .long{display:none}#upd .short{display:inline}", html)
+        self.assertIn("@media (max-width:1099px){.brand .full{display:none}", html)
+        self.assertIn('class="brand" title=', html)
+        self.assertIn("v0.4.0: git pull".replace("v0.4.0", "${esc(r.latest)}"), html)
 
 
 if __name__ == "__main__":
