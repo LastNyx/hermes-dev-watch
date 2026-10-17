@@ -2,13 +2,21 @@
 
 Windows: Edge WebView2 (built into Windows 10/11). Linux: GTK + WebKit2GTK 4.1 (system packages).
 """
-import argparse, pathlib, shutil, subprocess, sys, threading, webbrowser
+import argparse, base64, pathlib, shutil, subprocess, sys, threading, webbrowser
 
 import webview
 
 from . import __version__, core, update
 
 STATIC = pathlib.Path(__file__).resolve().parent / "static"
+
+
+def embed_fonts(html):
+    """The page is loaded from text, so fonts/... would not resolve: inline both fonts as data: URLs."""
+    for name in ("JetBrainsMono-Regular.woff2", "JetBrainsMono-Bold.woff2"):
+        data = base64.b64encode((STATIC / "fonts" / name).read_bytes()).decode("ascii")
+        html = html.replace(f"url(fonts/{name})", f"url(data:font/woff2;base64,{data})")
+    return html
 
 
 class Api:
@@ -22,7 +30,7 @@ class Api:
         o = open_run if isinstance(open_run, dict) else {}          # {"project": id, "run": run id}; bad input = none
         return {"projects": [core.project_state(pid, s, flt, open_run=o.get("run") if o.get("project") == pid else None)
                              for pid, s in sorted(self._projects.get().items())],
-                "known_format": core.KNOWN_FORMAT}
+                "known_format": core.KNOWN_FORMAT, "version": __version__}
 
     def progress(self, project, run, offset):
         scratch = self._projects.get().get(project)                 # only a known project, never a path from the page
@@ -101,9 +109,9 @@ def main(argv=None):
     projects.extra = extra_scratch            # session-only folders survive a settings save
     update.cleanup_old()                      # the .old binary a self-update left behind (frozen builds only)
     api = Api(projects, cfg_path)
-    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    html = embed_fonts((STATIC / "index.html").read_text(encoding="utf-8"))
     api._window = webview.create_window(f"Hermes Dev Watch {__version__}", html=html, js_api=api,
-                                       width=1320, height=840, min_size=(900, 560), background_color="#0e0f12")
+                                       width=1440, height=900, min_size=(900, 560), background_color="#0b0c0f")
     # Linux: GTK/WebKit directly (pywebview would try Qt first on KDE and log a traceback)
     webview.start(gui="gtk" if sys.platform.startswith("linux") else None, debug=a.debug)
     return 0

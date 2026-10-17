@@ -12,7 +12,14 @@ runs live, across every project on the machine.
 - **Run log**: the full progress log as it is written, which can be filtered to `say` / `edit` / `bash` / `denied` /
   `error` lines, and searched (plain text, Enter / Shift+Enter to step, Escape to clear; the first 1000 matches).
 - **Finished runs**: an in-app toast when a run ends, plus a desktop notification on Linux (`notify-send`).
-- **Settings (⚙)**: add or remove project folders with a folder picker.
+- **Stats** (right column, hidden below 1200 px wide): today's runs, pass, fail and list cost, the pass rate per role over
+  the last 30 days, and an activity heatmap of runs per day over the last 20 weeks, for the projects the picker shows.
+- **Keys**: `j` / `k` (or ↓ / ↑) open the next (older) or previous (newer) run in the run list, `l` the live view, `/`
+  log search in a run (the run filter elsewhere), `,` settings, `Esc` leaves a text box or goes back from a run or
+  settings. The key bar at the bottom lists them; keys typed into a box do nothing else.
+- **Look**: dark only, in a terminal style (JetBrains Mono, `$` panel titles, bracket buttons). The top bar stays on
+  one line from 900 px wide and shows the app version.
+- **Settings** (`settings` in the top bar, or `,`): add or remove project folders with a folder picker.
 
 The app only reads files. It cannot start or stop a worker (to stop one, use `scratch.py stop` in the kit), and it
 opens no network port: the window calls Python directly through pywebview's bridge. The only file it writes is its
@@ -29,12 +36,13 @@ GitHub release. They need no Python.
 
 ### Updates (0.3.6 and later)
 
-The app checks the latest GitHub release at startup and from Settings > **Check for updates**. A newer one shows
-`vX.Y.Z available - Update` in the header; nothing is downloaded until you click. Update downloads the file next to
+The app checks the latest GitHub release at startup and from Settings > **check for updates**. A newer one shows
+`vX.Y.Z available [update]` in the top bar (below 1300 px wide: `[update vX.Y.Z]`); nothing is downloaded until you click. Update downloads the file next to
 the binary, checks its SHA-256 against the digest GitHub lists for the release asset, renames the running binary to
 `<name>.old`, puts the new one in its place, starts it and closes the old window. The new version deletes `.old`.
-Settings > **Check at startup** (config `check_updates`) turns off the startup check; the button still works.
-Running from source, the header says `running from source: git pull` and no file is replaced.
+Settings > **check at startup** (config `check_updates`) turns off the startup check; the button still works.
+Running from source, the banner says `vX.Y.Z available - running from source: git pull` (below 1300 px wide:
+`vX.Y.Z: git pull`) and no file is replaced.
 
 If a new version will not start, `.old` is still there: delete the new binary and rename `<name>.old` back to
 `<name>` (Windows: `hermes-dev-watch-windows-x64.exe.old` -> `hermes-dev-watch-windows-x64.exe`).
@@ -61,7 +69,8 @@ Options: `--root DIR` and `--scratch DIR` add folders for this session only (not
 (opens the web inspector). Build the one-file app with `pyinstaller hermes-dev-watch.spec`; the result goes to `dist/`.
 
 Layout: `hermes_dev_watch/core.py` reads the files (stdlib only), `app.py` creates the window and the bridge, and
-`static/index.html` is the whole UI.
+`static/index.html` is the whole UI; `app.py` inlines the two JetBrains Mono fonts from `static/fonts/` as data URLs
+when it starts.
 
 ## Fake workers (no AI model)
 

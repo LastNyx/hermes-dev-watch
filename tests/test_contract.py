@@ -182,6 +182,30 @@ class HandMadeFiles(unittest.TestCase):
         for bad in (None, 5, ["x"], {}, "x", "20261016-120000-../x", "20261016-999999-dev"):
             self.assertIsNone(core.project_state("p", self.s, open_run=bad)["open"])
 
+    def test_run_stats(self):
+        import datetime
+        from unittest import mock
+        now = datetime.datetime(2026, 10, 16, 12, 0)
+        def run(stamp, role="dev", verdict="PASS ok", live=False):
+            return {"id": f"{stamp}-{role}", "stamp": stamp, "role": role, "verdict": verdict, "live": live}
+        runs = [run("20261016-100000"), run("20261016-110000", "dev", "FAIL x"), run("20261016-120000", "dev", None),
+                run("20261016-130000", "dev", "PASS", live=True), run("20261016-140000", "planner"),
+                run("20261017-100000"), run("20260917-100000", "review"), run("20260916-100000", "review"),
+                run("20260530-100000", "review"), run("20260529-100000", "review"), run("bad", "review"),
+                run(None, "review")]
+        st = core.run_stats(runs, now)
+        self.assertEqual(st["by_role"], {"dev": {"runs": 3, "pass": 1}, "review": {"runs": 1, "pass": 1}})
+        self.assertEqual(st["by_day"], {"20261016": 3, "20260917": 1, "20260916": 1, "20260530": 1})
+        self.assertEqual(st["days"], 140)
+        with open(self.s / "runs.log", "a", encoding="utf-8") as f:
+            f.write(line("20200101-000000", "review", "FAIL old"))
+        with mock.patch.object(core, "MAX_RUNS", 2):
+            st = core.project_state("p", self.s, {"verdict": ["fail"]}, now)
+        self.assertEqual(len(st["runs"]), 1)
+        self.assertEqual(st["stats"]["by_role"], {"dev": {"runs": 2, "pass": 2}, "fix-dev": {"runs": 1, "pass": 1},
+                                                  "dev2": {"runs": 1, "pass": 1}})
+        self.assertEqual(st["stats"]["by_day"], {"20261016": 4})
+
     def test_fmt_of(self):
         self.assertEqual(core.fmt_of(None), 1)
         self.assertEqual(core.fmt_of("x"), 0)

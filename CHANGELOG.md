@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+Terminal-style look and three-column layout (feature restyle, tickets 01-10).
+
+- Look: dark only (the light theme is gone), JetBrains Mono (embedded in the app), `$` panel titles, bracket-text
+  buttons, terminal colours. The window opens at 1440x900.
+- Top bar: one line from 900 px wide, with `live`, `settings`, the project picker, today's runs, pass and fail
+  (shorter as the window narrows, the fail count stays visible), the update banner and the GitHub button. It shows the
+  app version.
+- Three columns: status and run list on the left, the live view, a run or settings in the middle, and stats on the
+  right (hidden below 1200 px wide).
+- Stats column: pass rate per role over the last 30 days and an activity heatmap of runs per day over the last 20
+  weeks, for the projects the picker shows.
+- Keys: `j` / `k` (or ↓ / ↑) step through the run list, `l` the live view, `/` log search (or the run filter outside a
+  run), `,` settings, `Esc` back. A key bar at the bottom lists them.
+- Update banner: `vX.Y.Z available [update]` (from source: `vX.Y.Z available - running from source: git pull`); below
+  1300 px wide `[update vX.Y.Z]` and `vX.Y.Z: git pull`.
+
 ## 0.3.6 - 2026-10-17
 
 Self-update from GitHub Releases (design: `docs/open/auto-update.md`, grilled).
