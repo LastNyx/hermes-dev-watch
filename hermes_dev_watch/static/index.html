@@ -218,13 +218,13 @@ function renderTop(){
  $('ovrole').innerHTML=`<h4><span class="ic">▤</span>by role</h4><div class="c">pass rate per role, last 30 days</div>`+(rs.length?rs.map(([k,v])=>{const pc=Math.round(v.pass/v.runs*100);
   return `<div><span class="role rl" style="${rc(k)};width:${rw}ch">${esc(k)}</span> ${blocks(Math.round(pc/10),10)}${pc}% <span class="dm">[${v.pass}/${v.runs}]</span></div>`}).join(''):'<div class="c">no runs in 30 days</div>');
  const T=new Date(),t0=new Date(T.getFullYear(),T.getMonth(),T.getDate()),dw=(t0.getDay()+6)%7,p2=x=>String(x).padStart(2,'0'),MON=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
- let hm='',pm=-1;
- for(let w=0;w<20;w++){const m=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-dw+(w-19)*7).getMonth();if(m!==pm)hm+=`<span style="grid-row:1;grid-column:${w+2}">${MON[m]}</span>`;pm=m}
- for(const[i,l]of[[0,'m'],[2,'w'],[4,'f']])hm+=`<span style="grid-row:${i+2};grid-column:1">${l}</span>`;
+ let heat='',pm=-1;
+ for(let w=0;w<20;w++){const m=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-dw+(w-19)*7).getMonth();if(m!==pm)heat+=`<span style="grid-row:1;grid-column:${w+2}">${MON[m]}</span>`;pm=m}
+ for(const[i,l]of[[0,'m'],[2,'w'],[4,'f']])heat+=`<span style="grid-row:${i+2};grid-column:1">${l}</span>`;
  for(let w=0;w<20;w++)for(let d=0;d<7;d++){const dt=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-dw+(w-19)*7+d);if(dt>t0)continue;
   const n=bd[`${dt.getFullYear()}${p2(dt.getMonth()+1)}${p2(dt.getDate())}`]||0;
-  hm+=`<i class="${n?'l'+(n>=7?4:n>=4?3:n>=2?2:1):''}" style="grid-row:${d+2};grid-column:${w+2}" title="${dt.getFullYear()}-${p2(dt.getMonth()+1)}-${p2(dt.getDate())}: ${n} run${n===1?'':'s'}"></i>`}
- $('ovheat').innerHTML=`<h4><span class="ic">▦</span>activity</h4><div class="c">runs per day, last 20 weeks</div><div class="hm">${hm}</div><div class="hl"><span>// less</span><i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>more</span></div>`;
+  heat+=`<i class="${n?'l'+(n>=7?4:n>=4?3:n>=2?2:1):''}" style="grid-row:${d+2};grid-column:${w+2}" title="${dt.getFullYear()}-${p2(dt.getMonth()+1)}-${p2(dt.getDate())}: ${n} run${n===1?'':'s'}"></i>`}
+ $('ovheat').innerHTML=`<h4><span class="ic">▦</span>activity</h4><div class="c">runs per day, last 20 weeks</div><div class="hm">${heat}</div><div class="hl"><span>// less</span><i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>more</span></div>`;
  const nf=S.projects.filter(p=>p.newer_format);$('fmtwarn').hidden=!nf.length;
  $('fmtwarn').textContent=nf.length?`⚠ kit format ${Math.max(...nf.map(p=>p.fmt))} is newer than this watcher (${S.known_format??1}): update hermes-dev-watch`:'';
  $('fmtwarn').title=nf.length?'Some fields may be missing or wrong in: '+nf.map(p=>p.id).join(', '):'';
