@@ -33,8 +33,8 @@ input[type=checkbox]::before{content:"[ ]";color:var(--dim)}input[type=checkbox]
 #ghbtn{display:flex;align-items:center;color:var(--mut)}#ghbtn::before,#ghbtn::after{content:none}
 /* the top bar never overflows: the picker and today's numbers shrink, the update banner and GitHub button never do */
 #ghbtn{flex-shrink:0}#upd{flex-shrink:0}.brand,.nav{flex-shrink:0}
-.pj{min-width:0;display:flex;overflow:hidden}
-#proj{max-width:240px;text-overflow:ellipsis;min-width:0;white-space:nowrap}
+.pj{min-width:90px;display:flex;overflow:hidden}
+#proj{max-width:240px;text-overflow:ellipsis;min-width:90px;white-space:nowrap}
 #stats{flex-shrink:0}#stats .ss{display:none}#upd .short{display:none}
 @media (max-width:1399px){#stats .sl{display:none}#stats .ss{display:inline}}
 @media (max-width:1299px){#upd .long{display:none}#upd .short{display:inline}#stats .lp{display:none}header{gap:16px}}

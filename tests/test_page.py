@@ -26,6 +26,11 @@ class TestTerminalTheme(unittest.TestCase):
         self.assertIn("@media (max-width:1299px){#upd .long{display:none}#upd .short{display:inline}#stats .lp{display:none}", html)
         self.assertIn("$('stats').title=", html)
 
+    def test_project_picker_keeps_a_floor(self):
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        self.assertIn(".pj{min-width:90px;", html)
+        self.assertIn("#proj{max-width:240px;text-overflow:ellipsis;min-width:90px;", html)
+
     def test_header_is_one_line_with_short_forms(self):
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         self.assertNotIn("header{display:flex;flex-wrap", html)
