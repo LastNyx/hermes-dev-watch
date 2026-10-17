@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2026-10-17
 
 Terminal-style look and three-column layout (feature restyle, tickets 01-10).
 

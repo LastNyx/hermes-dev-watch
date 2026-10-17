@@ -30,3 +30,16 @@ Facts that dev workers had to work out. Read before changing the reader, the pag
   only `#dh` and `#fb` re-render each second, so the search box keeps focus. Search state is `sr`; `size` is the file
   size from the last `pull`. `visHits()` relies on `offsetParent`, so the `#fs` kind-filter style must apply first;
   `keepCur()` re-picks the current match after a line-kind click.
+
+## Restyle (0.4.0)
+
+- `core.run_stats(runs, now)` windows: 30 days = now.date and 29 before; 140 days = now.date and 139 before (2026-10-16 -> first day 20260530).
+- `tests/test_page.py` reads `static/index.html` as text (no browser, no webview); `app.py` imports webview so it can't be imported in tests.
+- The page's `#main` is the middle panel body; the panel title is `#mleg` via `setLeg()`; the right column body is `#ov`.
+- Header `#stats` is built in `renderTop()` with `.sl` (long words), `.ss` (✓/✗ short marks) and `.lp` (list $) spans; CSS `@media` at 1399px and 1299px hides them, and the full text goes in `#stats` `title`.
+- Header update banner `#upd` holds `.long`/`.short` spans (swapped at 1299px); brand has `.full` and project label `.pl`, both hidden at 1099px; the header never wraps (no `flex-wrap`).
+- Right column sections `#ovtoday`, `#ovrole`, `#ovheat` are all filled in `renderTop()` from `shown().map(p=>p.stats)`; heatmap is a CSS grid (`.hm`) with explicit grid-row/column per cell.
+- Key bar is a `<footer>` of `<kbd>` chips (brackets come from CSS); one `document` keydown handler after `$('livebtn').onclick` does the shortcuts via `allRuns()`, `open()`, and the nav buttons' `onclick`.
+- `blocks(f,n=12)` is the only bar helper (by-role passes 10); heatmap grid and legend cells share `#ov :is(.hm,.hl) i.lN` color rules.
+- Log time column `.l .ts` (56px, nowrap) is shared by run log and `.tile .l .ts`; header uses `align-items:flex-end`, so `#ghbtn` overrides with `align-self:center`.
+- Project picker CSS: wrapper `.pj` (label `.pl` + `<select id="proj">`) and `#proj` both need `min-width:90px`; `.pj` has `overflow:hidden`, so a 0 floor on either squeezes the select to nothing.
