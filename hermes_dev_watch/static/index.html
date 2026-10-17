@@ -1,122 +1,156 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>Hermes Dev Watch</title>
 <style>
-:root{--bg:#0e0f12;--panel:#15171c;--panel2:#1b1e24;--line:#262a32;--fg:#e6e8ec;--mut:#8b919c;--dim:#5d636e;
- --acc:#7c9cff;--ok:#3ecf8e;--bad:#ff6b6b;--warn:#f5a524;--say:#b6a6ff;--edit:#5fb3ff;--r:10px;
- --dev:#5fb3ff;--reviewer:#c08bff;--docs:#3ecfc4;--researcher:#f5a524;--other:#8b919c}
-@media (prefers-color-scheme:light){:root{--bg:#f6f7f9;--panel:#fff;--panel2:#f1f3f6;--line:#e3e6eb;--fg:#16181d;
- --mut:#5f6672;--dim:#9aa1ac;--acc:#3d63e0;--ok:#119a62;--bad:#d93c3c;--warn:#b7700a;--say:#6b55d6;--edit:#1f76c9}}
+@font-face{font-family:JBM;src:url(fonts/JetBrainsMono-Regular.woff2) format('woff2');font-weight:400}
+@font-face{font-family:JBM;src:url(fonts/JetBrainsMono-Bold.woff2) format('woff2');font-weight:700}
+:root{--bg:#0b0c0f;--panel:#0e1014;--line:#23262d;--fg:#d7dae0;--mut:#8a8f98;--dim:#5b616b;--faint:#2a2e36;
+ --amber:#e8b44c;--blue:#6ea8ff;--green:#8fd16a;--pink:#ff7a9c;--purple:#b48cff;--cyan:#5fd4e6;--red:#ff6b6b;--orange:#f2994a;
+ --ok:var(--green);--bad:var(--red);--warn:var(--amber);--sel:#161920;
+ --dev:var(--blue);--reviewer:var(--purple);--docs:var(--cyan);--researcher:var(--amber);--planner:var(--orange);--other:var(--mut)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.45 Inter,ui-sans-serif,system-ui,sans-serif;
+body{margin:0;background:var(--bg);color:var(--fg);font:13.5px/1.6 JBM,ui-monospace,Consolas,monospace;font-variant-ligatures:none;
  height:100vh;display:flex;flex-direction:column;overflow:hidden}
 button,select,input{font:inherit;color:inherit}
-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
-.brand{font-weight:700;letter-spacing:.2px;display:flex;align-items:center;gap:8px}
-.brand i{width:9px;height:9px;border-radius:50%;background:var(--dim)}
-.brand i.on{background:var(--ok);animation:ping 1.6s infinite}
-@keyframes ping{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 60%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
-select,input{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 9px;outline:none}
-select:focus,input:focus{border-color:var(--acc)}
-/* WebKitGTK draws a native (white) select unless appearance is reset */
-select{-webkit-appearance:none;appearance:none;padding-right:28px;cursor:pointer;
- background-image:linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%);
- background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+header{display:flex;align-items:flex-end;gap:26px;padding:12px 22px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+header>*{padding-bottom:9px}
+.brand{color:var(--fg)}.brand b{color:var(--amber);font-weight:700}.brand .d{color:var(--dim)}
+.nav{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;color:var(--mut);padding:0 2px 7px;cursor:pointer}
+.nav:hover{color:var(--fg)}.nav.on{color:var(--amber);border-bottom-color:var(--amber)}
+.pj{color:var(--mut)}
+select{-webkit-appearance:none;appearance:none;background:none;border:0;outline:none;color:var(--fg);cursor:pointer;padding:0 14px 0 0;
+ background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+ background-position:calc(100% - 5px) 55%,calc(100% - 1px) 55%;background-size:4px 4px;background-repeat:no-repeat}
 select option{background:var(--panel);color:var(--fg)}
-#q{width:190px}
-#fbar{display:flex;align-items:center;gap:6px;padding:6px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
-#fbar .btn{padding:2px 8px;font-size:12px}#fbar select{padding:2px 24px 2px 8px;font-size:12px}
-#fbar .sep{width:1px;height:16px;background:var(--line);margin:0 4px}
+input{background:none;border:0;outline:none}
+input[type=checkbox]{-webkit-appearance:none;appearance:none;cursor:pointer;margin:0 4px 0 0;vertical-align:baseline}
+input[type=checkbox]::before{content:"[ ]";color:var(--dim)}input[type=checkbox]:checked::before{content:"[x]";color:var(--amber)}
 .sp{flex:1}
-.stat{color:var(--mut);font-size:12px;white-space:nowrap}.stat b{color:var(--fg);font-weight:600}
-.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;white-space:nowrap}
-#upd{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--acc)}#upd[hidden]{display:none}
-#upd .btn{padding:2px 8px;font-size:12px}#ghbtn{display:flex;align-items:center;padding:4px 7px}
-.btn:hover{border-color:var(--acc)}.btn.on{background:color-mix(in srgb,var(--acc) 18%,transparent);border-color:var(--acc)}
-.wrap{flex:1;display:flex;min-height:0}
-aside{width:310px;flex:none;border-right:1px solid var(--line);overflow:auto;background:var(--panel)}
-.day{position:sticky;top:0;background:var(--panel);padding:10px 14px 4px;color:var(--dim);font-size:11px;
- text-transform:uppercase;letter-spacing:.8px;z-index:1}
-.run{margin:2px 8px;padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent}
-.run:hover{background:var(--panel2)}.run.sel{background:var(--panel2);border-color:var(--line)}
-.row{display:flex;align-items:center;gap:6px;min-width:0}
-.role{font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c);flex:none}
-.when{color:var(--dim);font-size:12px;margin-left:auto;white-space:nowrap}
-.what{margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.proj{color:var(--mut);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.v{font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mut)}
-.v b{font-weight:600}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
-main{flex:1;min-width:0;display:flex;flex-direction:column}
-.set{padding:22px 26px;overflow:auto;max-width:760px}.set h2{font-size:16px;margin:0 0 4px}.set h3{font-size:13px;margin:22px 0 6px}
-.set p{color:var(--mut);margin:0 0 8px}.set .row{padding:7px 10px;border:1px solid var(--line);border-radius:8px;margin:5px 0;background:var(--panel)}
-.set .row code{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:12px ui-monospace,monospace}
-.set .found{color:var(--mut);font-size:12px;margin-top:4px}
+.stat{color:var(--dim);white-space:nowrap}.stat b{color:var(--fg);font-weight:400}.stat b.ok{color:var(--green)}.stat b.bad{color:var(--red)}
+.btn{background:none;border:0;border-radius:0;padding:0;color:var(--mut);cursor:pointer;white-space:nowrap}
+.btn::before{content:"["}.btn::after{content:"]"}
+.btn:hover{color:var(--fg)}.btn.on{color:var(--amber);font-weight:700}
+#upd{color:var(--amber)}#upd[hidden]{display:none}#upd .btn{color:var(--amber)}
+#ghbtn{display:flex;align-items:center;color:var(--mut)}#ghbtn::before,#ghbtn::after{content:none}
+.cols{flex:1;display:grid;grid-template-columns:330px 1fr 380px;gap:22px;padding:22px;min-height:0}
+.col{display:flex;flex-direction:column;gap:22px;min-height:0;min-width:0}
+@media (max-width:1199px){.cols{grid-template-columns:330px 1fr}#right{display:none}}
+fieldset{margin:0;border:1px solid var(--line);border-radius:6px;padding:10px 16px 14px;min-height:0;min-width:0;background:var(--panel)}
+fieldset.grow{flex:1;overflow:hidden;display:flex;flex-direction:column}
+legend{padding:0 8px;margin-left:4px;color:var(--fg)}legend::before{content:"$ ";color:var(--amber)}legend .a{color:var(--dim)}
+.c{color:var(--dim)}.c::before{content:"// "}
+.am{color:var(--amber)}.gr{color:var(--green)}.rd{color:var(--red)}.mu{color:var(--mut)}.dm{color:var(--dim)}.bl{color:var(--blue)}
+.bar{display:inline-flex;gap:2px;vertical-align:middle;margin-right:10px}
+.bar i{width:9px;height:14px;background:var(--faint)}.bar i.f{background:var(--amber)}
+#beacon{display:none;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:8px;vertical-align:1px}
+#beacon.on{display:inline-block;animation:ping 1.6s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--green) 60%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
+#q{width:100%;border-bottom:1px solid var(--line);padding:2px 0;margin-bottom:6px}#q::placeholder{color:var(--dim)}#q:focus{border-bottom-color:var(--amber)}
+#fbar{display:flex;align-items:center;gap:0 10px;flex-wrap:wrap;padding-bottom:6px}
+#fbar .sep{flex-basis:100%;height:0}#fbar select{color:var(--mut)}
+#side{flex:1;min-height:0;overflow:auto;margin:0 -8px;padding:0 8px;display:flex;flex-direction:column}
+#side>*{flex:none}
+.day{position:sticky;top:0;background:var(--panel);padding:8px 0 2px;color:var(--dim);z-index:1}
+.run{padding:3px 6px;margin:0 -6px;border-radius:3px;cursor:pointer}.run:hover,.run.sel{background:var(--sel)}
+.row{display:flex;gap:10px;align-items:baseline;min-width:0}
+.role{color:var(--c);flex:none}
+.when{color:var(--mut);margin-left:auto;white-space:nowrap}
+.what{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.proj{color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{padding-left:34px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v{color:var(--mut)}.v b{font-weight:400}.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}
+#main{flex:1;min-height:0;display:flex;flex-direction:column}
+.set{overflow:auto;flex:1}.set h2{font-size:13.5px;margin:0 0 4px;color:var(--amber)}.set h3{font-size:13.5px;margin:18px 0 6px}
+.set p{color:var(--dim);margin:0 0 8px}.set .row{padding:5px 0;border-bottom:1px solid var(--line)}
+.set .row code{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.set .found{color:var(--mut);margin-top:4px}
 #toasts{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:8px;z-index:9}
-.toast{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:8px;padding:9px 12px;
- min-width:260px;max-width:380px;box-shadow:0 6px 24px #0006;cursor:pointer;animation:tin .2s}
+.toast{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:6px;padding:9px 12px;
+ min-width:260px;max-width:380px;box-shadow:0 6px 24px #0008;cursor:pointer;animation:tin .2s}
 @keyframes tin{from{transform:translateY(8px);opacity:0}}
-.empty{margin:auto;text-align:center;color:var(--mut);line-height:1.8}.empty h2{color:var(--fg);font-size:16px;margin:0 0 6px}
-.board{flex:1;overflow:auto;padding:14px;display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));align-content:start}
-.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;cursor:pointer;display:flex;flex-direction:column}
-.tile:hover{border-color:var(--acc)}
-.th{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;min-width:0}
-.th .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pulse{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;animation:ping 1.6s infinite}
+.empty{margin:auto;text-align:center;color:var(--mut);line-height:1.8}.empty h2{color:var(--fg);font-size:13.5px;margin:0 0 6px}
+.board{flex:1;overflow:auto;display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));align-content:start}
+.tile{background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column}
+.tile:hover{border-color:var(--amber)}
+.th{padding:6px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;min-width:0}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none;animation:ping 1.6s infinite}
 .tb{padding:6px 0;height:250px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;
  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 40px);mask-image:linear-gradient(to bottom,transparent,#000 40px)}
-.dh{padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
-.dh .t{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chip{font-size:12px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
-.tools{display:flex;gap:6px;margin-top:10px;align-items:center;flex-wrap:wrap}
-.log{flex:1;overflow:auto;padding:6px 0 30px;font:12px/1.55 "JetBrains Mono",ui-monospace,Menlo,monospace}
-.l{display:flex;gap:10px;padding:1px 16px}
-.log .l:hover{background:var(--panel2)}
+.dh{flex:none;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.dh .t{display:flex;align-items:center;gap:8px}
+.tools{display:flex;gap:10px;margin-top:8px;align-items:center;flex-wrap:wrap}
+#fb{display:flex;gap:10px;flex-wrap:wrap}
+.log{flex:1;overflow:auto;padding:6px 0 10px;font-size:12.5px;line-height:1.65}
+.l{display:flex;gap:12px;padding:0 4px}
+.log .l:hover{background:var(--sel)}
 .l .ts{color:var(--dim);width:46px;flex:none;text-align:right}
-.l .k{width:64px;flex:none;font-size:11px;font-weight:600;color:var(--mut);padding-top:1px;overflow:hidden;text-overflow:ellipsis}
+.l .k{width:64px;flex:none;color:var(--mut);overflow:hidden;text-overflow:ellipsis}
 .l .x{white-space:pre-wrap;word-break:break-word;min-width:0}
-.l.say .k,.l.say .x{color:var(--say)}.l.say .x{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:12.5px}
-.l.edit .k{color:var(--edit)}.l.bash .k{color:var(--warn)}
-.l.denied{background:color-mix(in srgb,var(--bad) 10%,transparent)}.l.denied .k,.l.denied .x{color:var(--bad)}
-.l.error .k,.l.error .x{color:var(--warn)}
-.log .l.sm{background:color-mix(in srgb,var(--warn) 20%,transparent)}
-.log .l.sc{background:color-mix(in srgb,var(--acc) 32%,transparent);box-shadow:inset 3px 0 var(--acc)}
-#ls{width:170px;padding:3px 8px;font-size:12px}
-.tile .l{padding:1px 12px;font:11.5px/1.5 "JetBrains Mono",ui-monospace,Menlo,monospace}.tile .l .ts{width:40px}
+.l.say .k,.l.say .x{color:var(--purple)}
+.l.edit .k,.l.edit .x{color:var(--blue)}.l.bash .k,.l.bash .x{color:var(--amber)}
+.l.denied .k,.l.denied .x{color:var(--red)}
+.l.error .k,.l.error .x{color:var(--orange)}
+.log .l.sm{background:color-mix(in srgb,var(--amber) 22%,transparent)}
+.log .l.sc{background:color-mix(in srgb,var(--amber) 42%,transparent);box-shadow:inset 3px 0 var(--amber)}
+#ls{flex:1;min-width:120px;max-width:260px;border-bottom:1px solid var(--line);padding:0}#ls::placeholder{color:var(--dim)}#ls:focus{border-bottom-color:var(--amber)}
+.tile .l{padding:0 12px;font-size:11.5px;line-height:1.5}.tile .l .ts{width:40px}
 .tile .l .x{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:2px solid transparent;background-clip:padding-box}
+#ov{flex:1;overflow:auto}#ov h4{margin:12px 0 0;font-weight:700;font-size:13.5px}#ov section:first-child h4{margin-top:0}
+#ov h4 .ic{display:inline-block;width:18px;color:var(--amber)}#ov section>div{padding-left:18px}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:var(--panel)}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:2px solid var(--panel);background-clip:padding-box}
 </style></head><body>
 <header>
- <div class="brand"><i id="beacon"></i>Workers</div>
- <select id="proj"></select>
- <input id="q" placeholder="Filter: role, ticket, verdict…">
+ <span class="brand">[<b>w</b>] <b>hermes.DevWatch</b> <span class="d" id="ver"></span></span>
+ <button class="nav" id="livebtn">live</button>
+ <button class="nav" id="setbtn" title="Project folders">settings</button>
+ <label class="pj">project: <select id="proj"></select></label>
  <span class="sp"></span>
  <span id="upd" hidden></span>
  <span class="stat warn" id="fmtwarn" hidden></span>
  <span class="stat" id="stats"></span>
- <button class="btn" id="livebtn">Live</button>
- <button class="btn" id="setbtn" title="Project folders">⚙</button>
  <button class="btn" id="ghbtn" title="hermes-dev-watch on GitHub"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></button>
 </header>
-<div id="fbar"></div>
 <div id="toasts"></div>
-<div class="wrap"><aside id="side"></aside><main id="main"></main></div>
+<div class="cols">
+ <div class="col" id="left">
+  <fieldset id="status"><legend>status</legend>
+   <div><i id="beacon"></i><span id="stv"></span></div>
+   <div id="stbar" style="margin-top:8px"></div>
+  </fieldset>
+  <fieldset class="grow"><legend>runs <span class="a" id="rleg">--all</span></legend>
+   <input id="q" placeholder="filter: role, ticket, verdict…">
+   <div id="fbar"></div>
+   <div id="side"></div>
+  </fieldset>
+ </div>
+ <div class="col" id="mid"><fieldset class="grow"><legend id="mleg">live</legend><div id="main"></div></fieldset></div>
+ <div class="col" id="right"><fieldset class="grow"><legend>stats <span class="a">--overview</span></legend>
+  <div id="ov"><section id="ovtoday"></section></div></fieldset></div>
+</div>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-// view.k: 'live' = board of running workers; 'run' = one run's log. Opening a run is sticky until "Live" or "←".
+// view.k: 'live' = board of running workers; 'run' = one run's log. Opening a run is sticky until "live" or "←".
 // WebKitGTK loads the page as about:blank, where localStorage throws: keep the choice in memory then
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let S={projects:[]},proj=store.get('proj')||'*',view={k:'live'},seenLive=null,off=0,logFor=null,filt='all',follow=true;
-const ROLES=['dev','reviewer','docs','researcher'];
+const ROLES=['dev','reviewer','docs','researcher','planner'];
 const rc=r=>`--c:var(--${ROLES.includes(r)?r:'other'})`;
+const setLeg=h=>{if($('mleg').dataset.h!==h){$('mleg').dataset.h=h;$('mleg').innerHTML=h}};
 const sdate=s=>new Date(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8),+s.slice(9,11),+s.slice(11,13),+s.slice(13,15));
 const hm=d=>d.toTimeString().slice(0,5);
 function dayLabel(d){const t=new Date();t.setHours(0,0,0,0);const x=new Date(d);x.setHours(0,0,0,0);
- const n=Math.round((t-x)/864e5);return n===0?'Today':n===1?'Yesterday':x.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}
+ const n=Math.round((t-x)/864e5);return n===0?'today':n===1?'yesterday':x.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'}).toLowerCase()}
 function dur(s){s=+s;if(!(s>=0))return'';return s<60?s+'s':s<3600?Math.floor(s/60)+'m '+(s%60)+'s':Math.floor(s/3600)+'h '+Math.floor(s%3600/60)+'m'}
 function vk(v){v=v||'';return /^PASS/.test(v)?'ok':/^(FAIL|ERROR)/.test(v)?'bad':'warn'}
 function vtxt(r){if(r.live)return'<b class="ok">running</b> · '+dur(Math.round((Date.now()-sdate(r.stamp))/1e3));
  const v=r.verdict||'',m=v.match(/^(\S+)\s*(.*)$/)||['',v,''];return `<b class="${vk(v)}">${esc(m[1])}</b> ${esc(m[2])}`}
+// the dim second line of a run in the list: "// <verdict> · <duration>"
+function sub(r){if(r.live)return'running · '+dur(Math.round((Date.now()-sdate(r.stamp))/1e3));
+ return[r.verdict||'no result',r.secs?dur(r.secs):''].filter(Boolean).join(' · ')}
+// marker of a run: [~] live, [i] planner line, [✓] pass, [✗] fail, [?] no result
+function marker(r){const v=r.verdict||'';
+ return r.live?['~','am']:r.role==='planner'?['i','mu']:/^PASS/.test(v)?['✓','gr']:/^(FAIL|ERROR)/.test(v)?['✗','rd']:['?','dm']}
 function title(r){return r.ticket&&r.ticket!=='-'?r.ticket.replace(/\.md$/,''):(r.feature||'—')}
 function kind(x){if(x.startsWith('say: '))return['say','says',x.slice(5)];if(x.startsWith('DENIED '))return['denied','DENIED',x.slice(7)];
  if(x.startsWith('exit!=0 '))return['error','failed',x.slice(8)];const sp=x.indexOf(' '),t=sp<0?x:x.slice(0,sp),rest=sp<0?'':x.slice(sp+1);
@@ -137,62 +171,71 @@ function liveRuns(){return shown().flatMap(p=>p.live_runs||[]).sort((a,b)=>a.sta
 function find(pid,id){const p=S.projects.find(x=>x.id===pid);return p&&(p.runs.find(r=>r.id===id)||(p.live_runs||[]).find(r=>r.id===id))}
 function renderBar(){
  const roles=[...new Set(shown().flatMap(p=>p.roles||[]))].sort(),chip=(k,v,n)=>`<button class="btn ${runFilter[k].includes(v)?'on':''}" data-rf="${k}" data-v="${esc(v)}">${esc(n)}</button>`;
- const h=VGROUPS.map(([v,n])=>chip('verdict',v,n)).join('')+'<span class="sep"></span>'+roles.map(r=>chip('role',r,r)).join('')+
-  `<select id="rfdays">${DAYSEL.map(([v,n])=>`<option value="${v}" ${runFilter.days===v?'selected':''}>${n}</option>`).join('')}</select><button class="btn" id="rfclear">Clear filters</button>`;
+ const h=VGROUPS.map(([v,n])=>chip('verdict',v,n)).join('')+'<span class="sep"></span>'+roles.map(r=>chip('role',r,r)).join('')+'<span class="sep"></span>'+
+  `<select id="rfdays">${DAYSEL.map(([v,n])=>`<option value="${v}" ${runFilter.days===v?'selected':''}>${n}</option>`).join('')}</select><button class="btn" id="rfclear">clear filters</button>`;
+ $('rleg').textContent='--'+runFilter.days;
  const bar=$('fbar');if(bar.dataset.h===h)return;bar.dataset.h=h;bar.innerHTML=h;
  for(const b of bar.querySelectorAll('[data-rf]'))b.onclick=()=>{const a=runFilter[b.dataset.rf],i=a.indexOf(b.dataset.v);i<0?a.push(b.dataset.v):a.splice(i,1);changed()};
  $('rfdays').onchange=e=>{runFilter.days=e.target.value;changed()};
  $('rfclear').onclick=()=>{runFilter={verdict:[],role:[],days:'all',q:''};$('q').value='';changed()};
 }
 async function changed(){saveRF();renderBar();try{S=await API.state(runFilter);render()}catch(e){$('stats').textContent='reader error: '+e}}
+const blocks=f=>`<span class="bar">${Array.from({length:12},(_,i)=>`<i class="${i<f?'f':''}"></i>`).join('')}</span>`;
 function renderTop(){
  const opts=[['*','All projects',S.projects.reduce((a,p)=>a+p.live,0)],...S.projects.map(p=>[p.id,p.id,p.live])];
  if(!opts.some(o=>o[0]===proj))proj='*';
  const h=opts.map(([v,n,l])=>`<option value="${esc(v)}" ${v===proj?'selected':''}>${esc(n)}${l?` · ${l} running`:''}</option>`).join('');
  if($('proj').dataset.h!==h){$('proj').innerHTML=h;$('proj').dataset.h=h}
- const tds=shown().map(p=>p.today||{}),n=tds.reduce((a,t)=>a+(t.runs||0),0),pass=tds.reduce((a,t)=>a+(t.pass||0),0),cost=tds.reduce((a,t)=>a+(t.cost||0),0),pl=tds.reduce((a,t)=>a+(t.planner||0),0),lv=liveRuns().length;
+ const tds=shown().map(p=>p.today||{}),n=tds.reduce((a,t)=>a+(t.runs||0),0),pass=tds.reduce((a,t)=>a+(t.pass||0),0),cost=tds.reduce((a,t)=>a+(t.cost||0),0),pl=tds.reduce((a,t)=>a+(t.planner||0),0),lv=liveRuns();
+ $('ver').textContent=S.version?`[${S.version}]`:'';
  $('stats').innerHTML=`today <b>${n}</b> runs · <b class="ok">${pass}</b> pass · <b class="bad">${n-pass}</b> fail · list <b>$${cost.toFixed(2)}</b>`+(pl?` · <b>${pl}</b> planner`:'');
+ const pct=n?Math.round(pass/n*100):0;
+ $('stv').innerHTML=lv.length?`<span class="gr">${lv.length} running</span>`+lv.map(r=>`<div class="what"><span class="role" style="${rc(r.role)}">${esc(r.role)}</span> <span class="bl">${esc(title(r))}</span></div>`).join(''):'<span class="c">no worker running</span>';
+ $('stbar').innerHTML=`${blocks(Math.round(pct*12/100))}${pct}% <span class="dm">[${pass}/${n} pass today]</span>`;
+ $('ovtoday').innerHTML=`<h4><span class="ic">◉</span>today</h4><div class="c">runs across watched projects</div>
+  <div>runs: <span class="am">${n}</span></div><div>pass: <span class="am">${pass}</span></div><div>fail: <span class="am">${n-pass}</span></div><div>list cost: <span class="am">$${cost.toFixed(2)}</span></div>`;
  const nf=S.projects.filter(p=>p.newer_format);$('fmtwarn').hidden=!nf.length;
  $('fmtwarn').textContent=nf.length?`⚠ kit format ${Math.max(...nf.map(p=>p.fmt))} is newer than this watcher (${S.known_format??1}): update hermes-dev-watch`:'';
  $('fmtwarn').title=nf.length?'Some fields may be missing or wrong in: '+nf.map(p=>p.id).join(', '):'';
- $('beacon').className=lv?'on':'';$('livebtn').textContent=`Live${lv?' · '+lv:''}`;$('livebtn').classList.toggle('on',view.k==='live');
+ $('beacon').className=lv.length?'on':'';$('livebtn').textContent=`live${lv.length?' · '+lv.length:''}`;$('livebtn').classList.toggle('on',view.k==='live');$('setbtn').classList.toggle('on',view.k==='settings');
 }
 function renderSide(){
  const rs=allRuns();
- let h=shown().filter(p=>p.total>p.runs.length).map(p=>`<div class="day">${esc(p.id)}: showing ${p.runs.length} of ${p.total}</div>`).join(''),last='';
- for(const r of rs){const d=dayLabel(sdate(r.stamp));if(d!==last){h+=`<div class="day">${d}</div>`;last=d}
-  const sel=view.k==='run'&&view.p===r.project&&view.id===r.id;
+ let h=shown().filter(p=>p.total>p.runs.length).map(p=>`<div class="day">// ${esc(p.id)}: showing ${p.runs.length} of ${p.total}</div>`).join(''),last='';
+ for(const r of rs){const d=dayLabel(sdate(r.stamp));if(d!==last){h+=`<div class="day">// ${esc(d)}</div>`;last=d}
+  const sel=view.k==='run'&&view.p===r.project&&view.id===r.id,[mk,mc]=marker(r);
   h+=`<div class="run ${sel?'sel':''}" data-p="${esc(r.project)}" data-id="${r.id}"><div class="row">
-   ${r.live?'<span class="pulse"></span>':''}<span class="role" style="${rc(r.role)}">${esc(r.role)}</span>
-   ${proj==='*'?`<span class="proj">${esc(r.project)}</span>`:''}<span class="when">${hm(sdate(r.stamp))}${!r.live&&r.secs?' · '+dur(r.secs):''}</span></div>
-   <div class="what" title="${esc(r.feature)}">${esc(title(r))}</div><div class="v">${vtxt(r)}</div></div>`}
- const sc=$('side').scrollTop;$('side').innerHTML=rs.length?h:h+'<div class="empty" style="padding:30px">No runs</div>';$('side').scrollTop=sc;
+   <span class="${mc}">[${mk}]</span><span class="role" style="${rc(r.role)}">${esc(r.role)}</span>
+   ${proj==='*'?`<span class="proj">${esc(r.project)}</span>`:''}<span class="what" title="${esc(r.feature)}">${esc(title(r))}</span><span class="when">${hm(sdate(r.stamp))}</span></div>
+   <div class="sub c">${esc(sub(r))}</div></div>`}
+ const sc=$('side').scrollTop;$('side').innerHTML=rs.length?h:h+'<div class="c" style="padding:12px 0">no runs</div>';$('side').scrollTop=sc;
  for(const d of document.querySelectorAll('.run'))d.onclick=()=>open(d.dataset.p,d.dataset.id);
 }
 function open(p,id){view={k:'run',p,id};logFor=null;render();pull()}
 function renderBoard(){
- const lv=liveRuns();logFor=null;clearSearch();
+ const lv=liveRuns();logFor=null;clearSearch();setLeg('live');
  if(!lv.length){const r=allRuns()[0];
-  $('main').innerHTML=`<div class="empty"><h2>No worker running</h2>${r?`Last run: <span class="role" style="${rc(r.role)}">${esc(r.role)}</span> ${esc(title(r))}<br>${vtxt(r)}<br><br><button class="btn" id="openlast">Open last run</button>`:'Start one from the planner.'}</div>`;
+  $('main').innerHTML=`<div class="empty"><h2>// no worker running</h2>${r?`Last run: <span class="role" style="${rc(r.role)}">${esc(r.role)}</span> ${esc(title(r))}<br>${vtxt(r)}<br><br><button class="btn" id="openlast">open last run</button>`:'<span class="c">start one from the planner</span>'}</div>`;
   if(r)$('openlast').onclick=()=>open(r.project,r.id);return}
  $('main').innerHTML=`<div class="board">${lv.map(r=>`<div class="tile" data-p="${esc(r.project)}" data-id="${r.id}">
   <div class="th"><span class="pulse"></span><span class="role" style="${rc(r.role)}">${esc(r.role)}</span>
-  <span class="t">${esc(title(r))}</span><span class="when">${esc(r.project)} · ${dur(Math.round((Date.now()-sdate(r.stamp))/1e3))}</span></div>
+  <span class="what">${esc(title(r))}</span><span class="when">${esc(r.project)} · ${dur(Math.round((Date.now()-sdate(r.stamp))/1e3))}</span></div>
   <div class="tb">${(r.tail||[]).map(lineHTML).join('')||'<div class="l"><span class="x" style="color:var(--dim)">starting…</span></div>'}</div></div>`).join('')}</div>`;
  for(const d of document.querySelectorAll('.tile'))d.onclick=()=>open(d.dataset.p,d.dataset.id);
 }
 function renderDetail(){
  const key=view.p+'/'+view.id;const op=S.projects.find(x=>x.id===view.p);let r=(op&&op.open&&op.open.id===view.id&&op.open)||find(view.p,view.id);
  if(!r){view={k:'live'};return renderBoard()}
+ setLeg(`run <span class="a">${esc(view.id)}</span>`);
  const chips=[r.project,r.repo&&r.repo!==r.project?r.repo:'',r.feature,r.ticket&&r.ticket!=='-'?r.ticket:'',r.model,r.backend&&r.backend!=='claude'?r.backend:'',
   r.turns&&r.turns!=='-'?r.turns+' turns':'',!r.live&&r.secs?dur(r.secs):'',r.cost!=null?'$'+r.cost.toFixed(2)+' list':'',r.denials&&r.denials!=='0'?r.denials+' denied':''].filter(Boolean);
- const head=`<div class="t"><button class="btn" id="back" title="Back to live">←</button>${r.live?'<span class="pulse"></span>':''}<span class="role" style="${rc(r.role)}">${esc(r.role)}</span>${esc(title(r))}</div>
-  <div class="v" style="margin-top:6px;font-size:13px;white-space:normal">${vtxt(r)}</div>
-  <div class="chips">${chips.map(c=>`<span class="chip">${esc(c)}</span>`).join('')}</div>`;
+ const head=`<div class="t"><button class="btn" id="back" title="Back to live">←</button>${r.live?'<span class="pulse"></span>':''}<span><span class="role" style="${rc(r.role)}">${esc(r.role)}</span> <span class="am">$</span> <span class="bl">${esc(title(r))}</span></span></div>
+  <div class="v">${vtxt(r)}</div>
+  <div class="c">${chips.map(esc).join(' · ')}</div>`;
  // the tools row is built once per run so the search box keeps focus and text across the 1 s refresh
- if(logFor!==key){clearSearch();$('main').innerHTML=`<div class="dh"><div id="dh"></div><div class="tools"><span id="fb"></span>
-  <input id="ls" placeholder="Search log…" aria-label="Search log"><span class="stat" id="lc"></span>
-  <span class="sp"></span><label class="stat"><input type="checkbox" id="fol"> follow</label></div></div><div class="log" id="log"></div>`;logFor=key;off=0;size=-1;
+ if(logFor!==key){clearSearch();$('main').innerHTML=`<div class="dh"><div id="dh"></div><div class="tools"><span id="fb"></span></div><div class="tools">
+  <input id="ls" placeholder="search log…" aria-label="Search log"><span class="stat" id="lc"></span>
+  <span class="sp"></span><label class="stat"><input type="checkbox" id="fol">follow</label></div></div><div class="log" id="log"></div>`;logFor=key;off=0;size=-1;
   $('ls').onkeydown=searchKey;$('ls').oninput=()=>{if(!$('ls').value.trim())clearSearch()}}
  $('dh').innerHTML=head;$('fol').checked=follow;
  $('fb').innerHTML=['all','say','edit','bash','denied','error'].map(f=>`<button class="btn ${filt===f?'on':''}" data-f="${f}">${f}</button>`).join('');
@@ -240,7 +283,7 @@ async function pull(){
   if(p.text){const first=off===0;L.insertAdjacentHTML('beforeend',p.text.split(/\r?\n/).filter(l=>l.trim()).map(lineHTML).join(''));
    if((follow&&!sr)||first)L.scrollTop=L.scrollHeight}
   if(p.offset!==undefined)off=p.offset;if(p.size!==undefined)size=p.size;
-  if(!L.children.length&&!p.text)L.innerHTML='<div class="empty" style="padding:30px">No progress log for this run<br><small>runs/ stays on the machine that ran it</small></div>';
+  if(!L.children.length&&!p.text)L.innerHTML='<div class="empty" style="padding:30px">// no progress log for this run<br><small>runs/ stays on the machine that ran it</small></div>';
  }finally{pulling=false}}
 async function tick(){
  try{S=await API.state(runFilter);await notifyDone();if(view.k==='settings'&&$('setv'))renderTop();else render();await pull()}catch(e){$('stats').textContent='reader error: '+e}
@@ -269,29 +312,29 @@ function toast(r){const ok=vk(r.verdict)==='ok',d=document.createElement('div');
  window.pywebview.api.notify(`${r.role} ${ok?'passed':'did not pass'}`,`${r.project}: ${title(r)} — ${r.verdict||''}`)}
 let CFG=null;
 async function renderSettings(){
- logFor=null;CFG=CFG||await API.config();
- const list=(k,label)=>CFG[k].map((x,i)=>`<div class="row"><code title="${esc(x)}">${esc(x)}</code><button class="btn" data-del="${k}:${i}">Remove</button></div>`).join('')||`<p>No ${label} yet.</p>`;
- $('main').innerHTML=`<div class="set" id="setv"><h2>Project folders</h2><p>Saved in <code>${esc(CFG.path)}</code>. Changes apply at once.</p>
-  <h3>Roots</h3><p>Every <code>.scratch</code> with runs, up to 3 folders below.</p>${list('roots','roots')}<button class="btn" data-add="roots">+ Add root…</button>
-  <h3>Single scratch folders</h3><p>A project's <code>.scratch</code> (or a workspace scratch folder) outside any root.</p>${list('scratch','folders')}<button class="btn" data-add="scratch">+ Add scratch folder…</button>
-  <h3>Updates</h3><p>New versions come from GitHub Releases; nothing is installed until you click Update.</p>
-  <div class="row"><label><input type="checkbox" id="setupd" ${CFG.check_updates!==false?'checked':''}> Check at startup</label>
-  <button class="btn" id="setchk">Check for updates</button><span class="stat" id="setchkr"></span></div>
+ logFor=null;CFG=CFG||await API.config();setLeg('settings');
+ const list=(k,label)=>CFG[k].map((x,i)=>`<div class="row"><code title="${esc(x)}">${esc(x)}</code><button class="btn" data-del="${k}:${i}">remove</button></div>`).join('')||`<p>// no ${label} yet.</p>`;
+ $('main').innerHTML=`<div class="set" id="setv"><h2>Project folders</h2><p>// saved in <code>${esc(CFG.path)}</code>. Changes apply at once.</p>
+  <h3>Roots</h3><p>// every <code>.scratch</code> with runs, up to 3 folders below.</p>${list('roots','roots')}<button class="btn" data-add="roots">+ add root…</button>
+  <h3>Single scratch folders</h3><p>// a project's <code>.scratch</code> (or a workspace scratch folder) outside any root.</p>${list('scratch','folders')}<button class="btn" data-add="scratch">+ add scratch folder…</button>
+  <h3>Updates</h3><p>// new versions come from GitHub Releases; nothing is installed until you click update.</p>
+  <div class="row"><label><input type="checkbox" id="setupd" ${CFG.check_updates!==false?'checked':''}>check at startup</label>
+  <button class="btn" id="setchk">check for updates</button><span class="stat" id="setchkr"></span></div>
   <h3>Found now</h3><div class="found">${S.projects.map(p=>`<div>${esc(p.id)} — ${p.run_count} runs · <code>${esc(p.path)}</code></div>`).join('')||'none'}</div>
-  <br><button class="btn" id="setdone">Done</button></div>`;
+  <br><button class="btn" id="setdone">done</button></div>`;
  for(const b of document.querySelectorAll('[data-del]'))b.onclick=async()=>{const [k,i]=b.dataset.del.split(':');CFG[k].splice(+i,1);CFG=await API.save(CFG);S=await API.state(runFilter);renderSettings()};
  for(const b of document.querySelectorAll('[data-add]'))b.onclick=async()=>{const f=await API.pick();if(f&&!CFG[b.dataset.add].includes(f)){CFG[b.dataset.add].push(f);CFG=await API.save(CFG);S=await API.state(runFilter)}renderSettings()};
  $('setupd').onchange=async e=>{CFG.check_updates=e.target.checked;CFG=await API.save(CFG)};
  $('setchk').onclick=async()=>{$('setchkr').textContent='checking…';const r=await checkUpdate(false);
-  $('setchkr').textContent=r.error?r.error:r.newer?`${r.latest} available (see the header)`:`up to date (${r.current})`};
+  $('setchkr').textContent=r.error?r.error:r.newer?`${r.latest} available (see the top bar)`:`up to date (${r.current})`};
  $('setdone').onclick=()=>{view={k:'live'};render()};
 }
 $('setbtn').onclick=()=>{view={k:'settings'};CFG=null;render()};
 $('ghbtn').onclick=()=>window.pywebview.api.open_repo();
-// --- self-update (docs/open/auto-update.md): a banner with the version tag; nothing changes until Update is clicked ---
+// --- self-update (docs/open/auto-update.md): a banner with the version tag; nothing changes until update is clicked ---
 async function checkUpdate(auto){let r;try{r=await window.pywebview.api.check_update(auto)}catch(e){r={error:String(e)}}
  const u=$('upd');if(r.newer){u.hidden=false;u.innerHTML=r.source?`${esc(r.latest)} available - running from source: git pull`
-  :`${esc(r.latest)} available <button class="btn" id="updbtn">Update</button>`;
+  :`${esc(r.latest)} available <button class="btn" id="updbtn">update</button>`;
   if(!r.source)$('updbtn').onclick=async()=>{$('updbtn').disabled=true;u.firstChild.textContent=`installing ${r.latest}… `;
    let a;try{a=await window.pywebview.api.apply_update()}catch(e){a={error:String(e)}}
    if(a.error){u.innerHTML=`<span class="warn">update failed: ${esc(a.error)}</span>`}else u.textContent=`restarting as ${a.installed}…`}}
