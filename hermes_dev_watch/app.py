@@ -2,11 +2,11 @@
 
 Windows: Edge WebView2 (built into Windows 10/11). Linux: GTK + WebKit2GTK 4.1 (system packages).
 """
-import argparse, pathlib, shutil, subprocess, sys
+import argparse, pathlib, shutil, subprocess, sys, threading, webbrowser
 
 import webview
 
-from . import __version__, core
+from . import __version__, core, update
 
 STATIC = pathlib.Path(__file__).resolve().parent / "static"
 
@@ -16,7 +16,7 @@ class Api:
 
     def __init__(self, projects, cfg_path):
         # underscore names: pywebview does not expose them to the page (it walks public attributes)
-        self._projects, self._cfg_path, self._window = projects, cfg_path, None
+        self._projects, self._cfg_path, self._window, self._update = projects, cfg_path, None, None
 
     def state(self, flt=None, open_run=None):
         o = open_run if isinstance(open_run, dict) else {}          # {"project": id, "run": run id}; bad input = none
@@ -43,6 +43,7 @@ class Api:
 
     def save_config(self, cfg):
         clean = {k: [str(x) for x in (cfg or {}).get(k) or [] if str(x).strip()] for k in ("roots", "scratch")}
+        clean["check_updates"] = (cfg or {}).get("check_updates") is not False
         core.save_config(clean, self._cfg_path)
         self._projects.set(core.resolve(clean["scratch"]) + self._projects.extra, core.resolve(clean["roots"]))
         return self.get_config()
@@ -50,6 +51,28 @@ class Api:
     def pick_folder(self):
         r = self._window.create_file_dialog(webview.FOLDER_DIALOG) if self._window else None
         return str(r[0]) if r else None
+
+    def check_update(self, auto=False):
+        """Latest release vs this build. auto (the startup check) is skipped when config check_updates is false; the
+        button passes auto=False. The asset found here is the only one apply_update will install."""
+        if auto and not core.load_config(self._cfg_path)["check_updates"]:
+            return {"disabled": True, "current": __version__}
+        info = update.check(__version__)
+        self._update = info
+        return {k: info.get(k) for k in ("current", "latest", "newer", "error")} | {"source": not update.frozen()}
+
+    def apply_update(self):
+        """Install the release found by the last check_update, start it, close this window. Never from source."""
+        if not update.frozen():
+            return {"error": "running from source: git pull"}
+        r = update.apply(self._update)
+        if r.get("ok") and self._window:
+            threading.Timer(0.5, self._window.destroy).start()  # let the page get the answer first
+        return r
+
+    def open_repo(self):
+        webbrowser.open(update.REPO_URL)
+        return True
 
     def notify(self, title, body):
         """Desktop notification when a run ends. Linux: notify-send if present. Elsewhere: the in-app toast only."""
@@ -76,6 +99,7 @@ def main(argv=None):
             break
     projects = core.Projects(core.resolve(cfg["scratch"]) + extra_scratch, core.resolve(cfg["roots"] + a.root))
     projects.extra = extra_scratch            # session-only folders survive a settings save
+    update.cleanup_old()                      # the .old binary a self-update left behind (frozen builds only)
     api = Api(projects, cfg_path)
     html = (STATIC / "index.html").read_text(encoding="utf-8")
     api._window = webview.create_window(f"Hermes Dev Watch {__version__}", html=html, js_api=api,

@@ -27,6 +27,18 @@ GitHub release. They need no Python.
 - Linux: needs GTK 3 and WebKit2GTK 4.1 installed on the system (Arch: `webkit2gtk-4.1`; Debian/Ubuntu:
   `gir1.2-webkit2-4.1`).
 
+### Updates (0.3.6 and later)
+
+The app checks the latest GitHub release at startup and from Settings > **Check for updates**. A newer one shows
+`vX.Y.Z available - Update` in the header; nothing is downloaded until you click. Update downloads the file next to
+the binary, checks its SHA-256 against the digest GitHub lists for the release asset, renames the running binary to
+`<name>.old`, puts the new one in its place, starts it and closes the old window. The new version deletes `.old`.
+Settings > **Check at startup** (config `check_updates`) turns off the startup check; the button still works.
+Running from source, the header says `running from source: git pull` and no file is replaced.
+
+If a new version will not start, `.old` is still there: delete the new binary and rename `<name>.old` back to
+`<name>` (Windows: `hermes-dev-watch-windows-x64.exe.old` -> `hermes-dev-watch-windows-x64.exe`).
+
 ## Develop
 
 Linux (the venv needs the system PyGObject, hence `--system-site-packages`):

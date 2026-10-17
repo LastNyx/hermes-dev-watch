@@ -247,20 +247,22 @@ def search_log(scratch, rid, text):
 
 
 def load_config(path=CONFIG):
-    """{"roots": [...], "scratch": [...]} from config.json; missing file = empty lists."""
+    """{"roots": [...], "scratch": [...], "check_updates": bool} from config.json; missing file = empty lists, checks on."""
     p = pathlib.Path(path)
     try:
         d = json.loads(p.read_text(encoding="utf-8")) if p.is_file() else {}
     except ValueError:
         d = {}
-    return {"roots": [str(x) for x in d.get("roots") or []], "scratch": [str(x) for x in d.get("scratch") or []]}
+    return {"roots": [str(x) for x in d.get("roots") or []], "scratch": [str(x) for x in d.get("scratch") or []],
+            "check_updates": d.get("check_updates") is not False}
 
 
 def save_config(cfg, path=CONFIG):
     p = pathlib.Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     tmp = p.with_suffix(".tmp")
-    tmp.write_text(json.dumps({"roots": cfg["roots"], "scratch": cfg["scratch"]}, indent=2), encoding="utf-8")
+    tmp.write_text(json.dumps({"roots": cfg["roots"], "scratch": cfg["scratch"],
+                                   "check_updates": cfg.get("check_updates") is not False}, indent=2), encoding="utf-8")
     os.replace(tmp, p)
 
 

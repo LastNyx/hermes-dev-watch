@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.6 - 2026-10-17
+
+Self-update from GitHub Releases (design: `docs/open/auto-update.md`, grilled).
+
+- `hermes_dev_watch/update.py` (new, stdlib): latest release check, asset by platform, SHA-256 against the release
+  digest, swap (`<exe>` -> `<exe>.old`, download -> `<exe>`), start the new binary, which deletes `.old`.
+- `app.py`: bridge `check_update(auto)`, `apply_update()`, `open_repo()`; `.old` cleanup at start. `core.py`: config
+  key `check_updates` (default on; old configs read as on).
+- `static/index.html`: header banner `vX.Y.Z available - Update` (from source: `running from source: git pull`), a
+  GitHub logo opening the repo, Settings > Updates (Check at startup, Check for updates).
+- Tests: `tests/test_update.py` 12 against a fake releases server (newer/same/older, bad tag, missing asset,
+  offline, digest mismatch and missing digest change nothing, swap undo, from source, config); 30 tests in all.
+  Real Windows binaries: a local 0.3.6 build updated itself to a 0.3.7 build served by a fake release (banner,
+  Update, restart as 0.3.7, `.old` deleted, Check for updates `up to date`, the checkbox saved
+  `check_updates: false`). Linux binary not run.
+
 ## 0.3.5 - 2026-10-17
 
 - Tests: hermes-dev-team 0.14.0 writes no planner progress log (planner lines are `action=status|decide`, result path

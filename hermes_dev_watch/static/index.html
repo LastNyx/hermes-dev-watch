@@ -29,6 +29,8 @@ select option{background:var(--panel);color:var(--fg)}
 .sp{flex:1}
 .stat{color:var(--mut);font-size:12px;white-space:nowrap}.stat b{color:var(--fg);font-weight:600}
 .btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+#upd{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--acc)}#upd[hidden]{display:none}
+#upd .btn{padding:2px 8px;font-size:12px}#ghbtn{display:flex;align-items:center;padding:4px 7px}
 .btn:hover{border-color:var(--acc)}.btn.on{background:color-mix(in srgb,var(--acc) 18%,transparent);border-color:var(--acc)}
 .wrap{flex:1;display:flex;min-height:0}
 aside{width:310px;flex:none;border-right:1px solid var(--line);overflow:auto;background:var(--panel)}
@@ -88,10 +90,12 @@ main{flex:1;min-width:0;display:flex;flex-direction:column}
  <select id="proj"></select>
  <input id="q" placeholder="Filter: role, ticket, verdict…">
  <span class="sp"></span>
+ <span id="upd" hidden></span>
  <span class="stat warn" id="fmtwarn" hidden></span>
  <span class="stat" id="stats"></span>
  <button class="btn" id="livebtn">Live</button>
  <button class="btn" id="setbtn" title="Project folders">⚙</button>
+ <button class="btn" id="ghbtn" title="hermes-dev-watch on GitHub"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></button>
 </header>
 <div id="fbar"></div>
 <div id="toasts"></div>
@@ -270,14 +274,29 @@ async function renderSettings(){
  $('main').innerHTML=`<div class="set" id="setv"><h2>Project folders</h2><p>Saved in <code>${esc(CFG.path)}</code>. Changes apply at once.</p>
   <h3>Roots</h3><p>Every <code>.scratch</code> with runs, up to 3 folders below.</p>${list('roots','roots')}<button class="btn" data-add="roots">+ Add root…</button>
   <h3>Single scratch folders</h3><p>A project's <code>.scratch</code> (or a workspace scratch folder) outside any root.</p>${list('scratch','folders')}<button class="btn" data-add="scratch">+ Add scratch folder…</button>
+  <h3>Updates</h3><p>New versions come from GitHub Releases; nothing is installed until you click Update.</p>
+  <div class="row"><label><input type="checkbox" id="setupd" ${CFG.check_updates!==false?'checked':''}> Check at startup</label>
+  <button class="btn" id="setchk">Check for updates</button><span class="stat" id="setchkr"></span></div>
   <h3>Found now</h3><div class="found">${S.projects.map(p=>`<div>${esc(p.id)} — ${p.run_count} runs · <code>${esc(p.path)}</code></div>`).join('')||'none'}</div>
   <br><button class="btn" id="setdone">Done</button></div>`;
  for(const b of document.querySelectorAll('[data-del]'))b.onclick=async()=>{const [k,i]=b.dataset.del.split(':');CFG[k].splice(+i,1);CFG=await API.save(CFG);S=await API.state(runFilter);renderSettings()};
  for(const b of document.querySelectorAll('[data-add]'))b.onclick=async()=>{const f=await API.pick();if(f&&!CFG[b.dataset.add].includes(f)){CFG[b.dataset.add].push(f);CFG=await API.save(CFG);S=await API.state(runFilter)}renderSettings()};
+ $('setupd').onchange=async e=>{CFG.check_updates=e.target.checked;CFG=await API.save(CFG)};
+ $('setchk').onclick=async()=>{$('setchkr').textContent='checking…';const r=await checkUpdate(false);
+  $('setchkr').textContent=r.error?r.error:r.newer?`${r.latest} available (see the header)`:`up to date (${r.current})`};
  $('setdone').onclick=()=>{view={k:'live'};render()};
 }
 $('setbtn').onclick=()=>{view={k:'settings'};CFG=null;render()};
+$('ghbtn').onclick=()=>window.pywebview.api.open_repo();
+// --- self-update (docs/open/auto-update.md): a banner with the version tag; nothing changes until Update is clicked ---
+async function checkUpdate(auto){let r;try{r=await window.pywebview.api.check_update(auto)}catch(e){r={error:String(e)}}
+ const u=$('upd');if(r.newer){u.hidden=false;u.innerHTML=r.source?`${esc(r.latest)} available - running from source: git pull`
+  :`${esc(r.latest)} available <button class="btn" id="updbtn">Update</button>`;
+  if(!r.source)$('updbtn').onclick=async()=>{$('updbtn').disabled=true;u.firstChild.textContent=`installing ${r.latest}… `;
+   let a;try{a=await window.pywebview.api.apply_update()}catch(e){a={error:String(e)}}
+   if(a.error){u.innerHTML=`<span class="warn">update failed: ${esc(a.error)}</span>`}else u.textContent=`restarting as ${a.installed}…`}}
+ return r}
 // the bridge can be ready before this script runs (measured on GTK), so start on whichever comes first
-let started=false;const start=()=>{if(!started&&window.pywebview&&window.pywebview.api&&window.pywebview.api.state){started=true;tick()}};
+let started=false;const start=()=>{if(!started&&window.pywebview&&window.pywebview.api&&window.pywebview.api.state){started=true;tick();checkUpdate(true)}};
 window.addEventListener('pywebviewready',start);start();setTimeout(function w(){if(!started){start();setTimeout(w,100)}},100);
 </script></body></html>
